@@ -1,0 +1,7 @@
+{
+  "name": "Teach-Back Engine",
+  "description": "A web app that turns complex medical instructions into a plain-language explanation with a short quiz and adaptive re-teaching until the user demonstrates mastery.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
