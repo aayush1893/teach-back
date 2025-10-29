@@ -1,10 +1,16 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Chat } from '@google/genai';
 import { ChatMessage } from '../types';
 import { ai } from '../services/geminiService';
 import { SendIcon, SparklesIcon } from './icons';
+import { mockChatMessages } from '../data/mockChatData';
 
-const ChatBot: React.FC = () => {
+interface ChatBotProps {
+    isDemoActive: boolean;
+}
+
+const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive }) => {
     const [chat, setChat] = useState<Chat | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState('');
@@ -12,15 +18,19 @@ const ChatBot: React.FC = () => {
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const newChat = ai.chats.create({
-            model: 'gemini-2.5-flash',
-            config: {
-                systemInstruction: 'You are a helpful assistant for patients. Your goal is to explain medical concepts and terminology in simple, easy-to-understand language. You can also help rephrase text to be clearer. Do not provide medical advice.',
-            },
-        });
-        setChat(newChat);
-        setMessages([{ role: 'model', text: 'Hello! How can I help you understand your medical instructions today? You can ask me to explain a term or rephrase a sentence.' }]);
-    }, []);
+        if (isDemoActive) {
+            setMessages(mockChatMessages);
+        } else {
+            const newChat = ai.chats.create({
+                model: 'gemini-2.5-flash',
+                config: {
+                    systemInstruction: 'You are a helpful assistant for patients. Your goal is to explain medical concepts and terminology in simple, easy-to-understand language. You can also help rephrase text to be clearer. Do not provide medical advice.',
+                },
+            });
+            setChat(newChat);
+            setMessages([{ role: 'model', text: 'Hello! How can I help you understand your medical instructions today? You can ask me to explain a term or rephrase a sentence.' }]);
+        }
+    }, [isDemoActive]);
 
     useEffect(() => {
         if (chatContainerRef.current) {
@@ -59,7 +69,7 @@ const ChatBot: React.FC = () => {
     };
 
     return (
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 flex flex-col h-[65vh] sm:h-[70vh] max-h-[700px]">
+        <div data-tour-id="chat-helper-content" className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 flex flex-col h-[65vh] sm:h-[70vh] max-h-[700px]">
             <h2 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-3">Chat Helper</h2>
             <div ref={chatContainerRef} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
                 {messages.map((msg, index) => (
@@ -92,11 +102,11 @@ const ChatBot: React.FC = () => {
                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                         placeholder="Ask a question..."
                         className="flex-grow p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                        disabled={isLoading}
+                        disabled={isLoading || isDemoActive}
                     />
                     <button
                         onClick={handleSendMessage}
-                        disabled={isLoading || !currentMessage.trim()}
+                        disabled={isLoading || !currentMessage.trim() || isDemoActive}
                         className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                         <SendIcon className="w-6 h-6" />

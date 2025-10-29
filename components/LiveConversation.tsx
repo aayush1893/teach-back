@@ -1,8 +1,10 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { LiveSession, Modality, Blob, LiveServerMessage } from '@google/genai';
 import { ChatMessage } from '../types';
 import { ai } from '../services/geminiService';
 import { MicrophoneIcon, StopIcon, SparklesIcon } from './icons';
+import { mockLiveTranscript } from '../data/mockChatData';
 
 const isApiSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext || (window as any).webkitAudioContext));
 
@@ -45,8 +47,11 @@ async function decodeAudioData(
   return buffer;
 }
 
+interface LiveConversationProps {
+    isDemoActive: boolean;
+}
 
-const LiveConversation: React.FC = () => {
+const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive }) => {
     const [transcript, setTranscript] = useState<ChatMessage[]>([]);
     const [isConnecting, setIsConnecting] = useState(false);
     const [isLive, setIsLive] = useState(false);
@@ -202,13 +207,15 @@ const LiveConversation: React.FC = () => {
         return () => { stopSession(); };
     }, [stopSession]);
     
+    const displayTranscript = isDemoActive ? mockLiveTranscript : transcript;
+
     return (
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 flex flex-col h-[65vh] sm:h-[70vh] max-h-[700px]">
+        <div data-tour-id="live-qa-content" className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 flex flex-col h-[65vh] sm:h-[70vh] max-h-[700px]">
             <div className="flex justify-between items-center mb-4 border-b pb-3">
                  <h2 className="text-xl font-semibold text-gray-800">Live Q&A</h2>
                  <button
                     onClick={isLive || isConnecting ? stopSession : startSession}
-                    disabled={!isApiSupported}
+                    disabled={!isApiSupported || isDemoActive}
                     title={!isApiSupported ? "Your browser does not support the necessary APIs for this feature." : (isLive ? "End Session" : "Start Live Q&A")}
                     className={`px-4 py-2 text-sm font-medium border rounded-md flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isLive ? 'text-red-700 bg-red-100 border-red-300 hover:bg-red-200' : 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100'}`}
                  >
@@ -225,7 +232,7 @@ const LiveConversation: React.FC = () => {
                  </button>
             </div>
             <div ref={transcriptContainerRef} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
-                 {!isLive && transcript.length === 0 && (
+                 {!isLive && displayTranscript.length === 0 && !isDemoActive && (
                     <div className="text-center text-gray-500 pt-10">
                          {!isApiSupported ? (
                             <p>Sorry, your browser doesn't support the required features for live conversations.</p>
@@ -234,7 +241,7 @@ const LiveConversation: React.FC = () => {
                         )}
                     </div>
                 )}
-                {transcript.map((msg, index) => (
+                {displayTranscript.map((msg, index) => (
                     <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                         {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5"/></div>}
                         <div className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>

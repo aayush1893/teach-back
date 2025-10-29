@@ -16,7 +16,7 @@ const MetricItem: React.FC<{ label: string; value: string | number | null }> = (
 
 const MetricsFooter: React.FC<MetricsFooterProps> = ({ metrics, formattedTime }) => {
   return (
-    <footer className="sticky bottom-0 left-0 right-0 bg-white shadow-top z-10 border-t">
+    <footer className="sticky bottom-0 left-0 right-0 bg-white shadow-top z-10 border-t" data-tour-id="metrics-footer">
       <div className="container mx-auto px-4 py-3">
         <div className="grid grid-cols-3 gap-4">
           <MetricItem label="Reading Grade" value={metrics.readingGrade ? `~${metrics.readingGrade}th` : null} />

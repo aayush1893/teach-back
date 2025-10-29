@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { SparklesIcon, MicrophoneIcon, StopIcon, UploadIcon, SpeakerWaveIcon } from './icons';
 import { transcribeAndTranslateAudio, synthesizeSpeech } from '../services/geminiService';
@@ -202,6 +203,7 @@ const InputCard: React.FC<InputCardProps> = ({
        </div>
 
       <textarea
+        data-tour-id="input-area"
         value={inputText}
         onChange={(e) => {
             setInputText(e.target.value)
@@ -215,7 +217,7 @@ const InputCard: React.FC<InputCardProps> = ({
       <p className="text-xs text-gray-500 mt-1">Minimum 20 characters. No personal data is saved.</p>
       
       <div className="mt-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div className="flex items-center flex-wrap gap-2">
+        <div data-tour-id="input-buttons" className="flex items-center flex-wrap gap-2">
              <button
                 onClick={isRecording ? handleStopRecording : handleStartRecording}
                 disabled={isAnyLoading || !isAudioApiSupported}
@@ -243,6 +245,7 @@ const InputCard: React.FC<InputCardProps> = ({
             </button>
         </div>
         <button
+          data-tour-id="generate-button"
           onClick={onGenerate}
           disabled={isGenerateButtonDisabled}
           className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:scale-100 order-first sm:order-last"
@@ -263,10 +266,10 @@ const InputCard: React.FC<InputCardProps> = ({
           )}
         </button>
       </div>
-       <div className="mt-6 border-t pt-4 flex flex-col sm:flex-row items-stretch sm:items-center sm:space-x-2 space-y-2 sm:space-y-0">
+       <div data-tour-id="session-buttons" className="mt-6 border-t pt-4 flex flex-col sm:flex-row items-stretch sm:items-center sm:space-x-2 space-y-2 sm:space-y-0">
             <button onClick={onLoad} disabled={!hasSavedSession || isAnyLoading} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">Load Session</button>
             <button onClick={onSave} disabled={!isSessionActive || isAnyLoading} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">Save Session</button>
-            <button onClick={onClear} disabled={!hasSavedSession || isAnyLoading} className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border-red-200 rounded-md hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed">Clear Session</button>
+            <button onClick={onClear} disabled={(!hasSavedSession && !isSessionActive) || isAnyLoading} className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border-red-200 rounded-md hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed">Clear Session</button>
         </div>
     </div>
   );

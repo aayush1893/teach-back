@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { TeachBackData, Language, LANGUAGE_VOICE_MAP } from '../types';
 
@@ -110,6 +111,42 @@ const getTeachBackData = async (inputText: string, retry: boolean = false): Prom
 export const generateTeachBack = async (inputText: string): Promise<TeachBackData> => {
     return getTeachBackData(inputText);
 };
+
+// --- Video Generation Service ---
+export const generateTutorialVideo = async (): Promise<string> => {
+  // A new instance is created to ensure the latest API key from the selection dialog is used.
+  const aiForVideo = new GoogleGenAI({ apiKey: API_KEY });
+
+  let operation = await aiForVideo.models.generateVideos({
+    model: 'veo-3.1-fast-generate-preview',
+    prompt: `A professional, animated tutorial video for a web application called 'Teach-Back Engine'. The video should be about 15 seconds long.
+      - Start with the app's logo and title.
+      - Show a user pasting medical text into an input box on a clean, modern UI (blue and white theme).
+      - Animate the text transforming into a simplified version.
+      - Briefly show a multiple-choice quiz about the text.
+      - Show a "Mastered!" badge with confetti.
+      - The animation should be smooth and professional, suitable for a product demo.`,
+    config: {
+      numberOfVideos: 1,
+      resolution: '720p',
+      aspectRatio: '16:9'
+    }
+  });
+
+  while (!operation.done) {
+    // Poll every 10 seconds
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    operation = await aiForVideo.operations.getVideosOperation({ operation: operation });
+  }
+
+  const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+  if (!downloadLink) {
+    throw new Error("Video generation completed, but no download link was found.");
+  }
+  // The API key is appended for authentication when fetching the video blob
+  return `${downloadLink}&key=${API_KEY}`;
+};
+
 
 // New Service Functions
 

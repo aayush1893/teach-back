@@ -39,7 +39,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ qaItems, remediation, quizState, us
   const hasIncorrectAnswers = quizState === QuizState.Submitted && qaItems.some((_, i) => isWrongAnswer(i));
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200" data-tour-id="quiz-card">
       <h2 className="text-xl font-semibold mb-4">2. Quick Quiz</h2>
       <div className="space-y-6">
         {qaItems.map((item, qIndex) => (

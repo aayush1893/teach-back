@@ -4,8 +4,12 @@
   <head>
     <meta charset="UTF--8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#2563eb"/>
+    <link rel="manifest" href="/manifest.json" />
     <title>Teach-Back Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React Joyride styles -->
+    <link rel="stylesheet" href="https://unpkg.com/react-joyride/dist/react-joyride.css">
     <style>
       @media print {
         body * {
@@ -38,6 +42,8 @@
     // Point to the worker script provided by the CDN
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
   </script>
+  <!-- React Joyride script -->
+  <script src="https://unpkg.com/react-joyride/dist/react-joyride.min.js"></script>
 </head>
   <body class="bg-gray-50 text-gray-800">
     <div id="root"></div>

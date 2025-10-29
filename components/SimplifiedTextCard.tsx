@@ -20,7 +20,7 @@ const SimplifiedTextCard: React.FC<SimplifiedTextCardProps> = ({ text, safetyFla
   const hasFlags = safetyFlags.urgent_contact || safetyFlags.contraindication_mentioned || safetyFlags.red_flags.length > 0;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200" data-tour-id="simplified-text-card">
       <div className="flex justify-between items-start mb-3">
         <h2 className="text-xl font-semibold">Simplified Version</h2>
         <button

@@ -43,7 +43,7 @@ const MasteryBadge: React.FC<MasteryBadgeProps> = ({ onDownload }) => {
           100% { transform: translateY(150px) rotate(720deg); opacity: 0; }
         }
       `}</style>
-      <div id="mastery-badge-container" className="confetti-container bg-green-100 border-l-4 border-green-500 text-green-700 p-6 rounded-lg shadow-md text-center">
+      <div id="mastery-badge-container" data-tour-id="mastery-badge" className="confetti-container bg-green-100 border-l-4 border-green-500 text-green-700 p-6 rounded-lg shadow-md text-center">
         <h2 className="text-2xl font-bold">Mastered!</h2>
         <p className="mt-2">Great job! You've correctly answered all the questions.</p>
         <div className="mt-4">
