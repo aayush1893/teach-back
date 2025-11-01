@@ -9,6 +9,11 @@ interface MasteryBadgeProps {
 
 const MasteryBadge: React.FC<MasteryBadgeProps> = ({ onDownload }) => {
   useEffect(() => {
+    // Accessibility: Do not run confetti if the user prefers reduced motion.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    
     // A simple confetti effect
     const confettiCount = 100;
     const container = document.getElementById('mastery-badge-container');

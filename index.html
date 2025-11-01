@@ -18,7 +18,7 @@
       }
     </script>
     <!-- React Joyride styles (version pinned for stability) -->
-    <link rel="stylesheet" href="https://unpkg.com/react-joyride@2.8.2/dist/react-joyride.css">
+    <link rel="stylesheet" href="https://unpkg.com/react-joyride@2.8.2/dist/react-joyride.css" integrity="sha384-yBzStC/9O/2fV/e8/Js5i/fPLtKqxLfrfPnhp1k3dY/JSti1lR++yGjjf3I/Kjxw" crossorigin="anonymous">
     <script>
       // Prevents Flash of Incorrect Theme by applying the saved theme before the page loads.
       (function() {
@@ -92,6 +92,17 @@
           width: 100%;
         }
       }
+      /* Accessibility: Respect user's preference for reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
     </style>
   <script type="importmap">
 {
@@ -110,7 +121,7 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
   </script>
   <!-- React Joyride script (version pinned for stability) -->
-  <script src="https://unpkg.com/react-joyride@2.8.2/dist/react-joyride.min.js"></script>
+  <script src="https://unpkg.com/react-joyride@2.8.2/dist/react-joyride.min.js" integrity="sha384-sI/EGoqIM3GBEDi/K4CqtUPhs27xJ0ZpCVvOFj3F965N75J3zPk0TDAuHIMyf03R" crossorigin="anonymous"></script>
 </head>
   <body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300">
     <div id="root"></div>

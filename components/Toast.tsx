@@ -34,8 +34,12 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
   const config = toastConfig[type];
 
   return (
-    <div className="fixed top-5 right-5 z-[100] max-w-sm w-full">
-        <div className={`relative w-full p-4 border-l-4 rounded-md shadow-lg flex items-start ${config.style}`} role="alert">
+    <div
+      className="fixed top-5 right-5 z-[100] max-w-sm w-full"
+      role="alert"
+      aria-live="assertive"
+    >
+        <div className={`relative w-full p-4 border-l-4 rounded-md shadow-lg flex items-start ${config.style}`}>
             <div className="flex-shrink-0">
                 {config.icon}
             </div>

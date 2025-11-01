@@ -1,14 +1,35 @@
 import React, { useState } from 'react';
-import { CopyIcon, CheckIcon, DisclaimerIcon } from './icons';
+import { CopyIcon, CheckIcon, DisclaimerIcon, PlusIcon, MinusIcon, ContrastIcon, RefreshIcon } from './icons';
 import { SafetyFlags } from '../types';
 
-interface SimplifiedTextCardProps {
-  text: string;
-  safetyFlags: SafetyFlags;
-}
+const FONT_SIZE_STEP = 2; // in pixels
+const MIN_FONT_SIZE = 12; // in pixels
+const MAX_FONT_SIZE = 24; // in pixels
+const DEFAULT_FONT_SIZE = 16; // Corresponds to Tailwind's `text-base`
 
-const SimplifiedTextCard: React.FC<SimplifiedTextCardProps> = ({ text, safetyFlags }) => {
+const AccessibilityToolbar: React.FC<{ onFontSizeChange: (size: number) => void; onToggleContrast: () => void; onReset: () => void; fontSize: number }> = ({ onFontSizeChange, onToggleContrast, onReset, fontSize }) => {
+    return (
+        <div className="flex items-center space-x-2 p-1 bg-gray-100 dark:bg-gray-700/50 rounded-md">
+            <button onClick={() => onFontSizeChange(fontSize + FONT_SIZE_STEP)} disabled={fontSize >= MAX_FONT_SIZE} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded disabled:opacity-50" title="Increase font size" aria-label="Increase font size">
+                <PlusIcon className="w-5 h-5" />
+            </button>
+            <button onClick={() => onFontSizeChange(fontSize - FONT_SIZE_STEP)} disabled={fontSize <= MIN_FONT_SIZE} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded disabled:opacity-50" title="Decrease font size" aria-label="Decrease font size">
+                <MinusIcon className="w-5 h-5" />
+            </button>
+            <button onClick={onToggleContrast} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded" title="Toggle high contrast" aria-label="Toggle high contrast">
+                <ContrastIcon className="w-5 h-5" />
+            </button>
+             <button onClick={onReset} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded" title="Reset view settings" aria-label="Reset view settings">
+                <RefreshIcon className="w-5 h-5" />
+            </button>
+        </div>
+    );
+};
+
+const SimplifiedTextCard: React.FC<{ text: string; safetyFlags: SafetyFlags }> = ({ text, safetyFlags }) => {
   const [copied, setCopied] = useState(false);
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+  const [highContrast, setHighContrast] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
@@ -16,30 +37,48 @@ const SimplifiedTextCard: React.FC<SimplifiedTextCardProps> = ({ text, safetyFla
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const resetAccessibility = () => {
+    setFontSize(DEFAULT_FONT_SIZE);
+    setHighContrast(false);
+  };
+
   const hasFlags = safetyFlags.urgent_contact || safetyFlags.contraindication_mentioned || safetyFlags.red_flags.length > 0;
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700" data-tour-id="simplified-text-card">
-      <div className="flex justify-between items-start mb-3">
+    <div className={`bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 ${highContrast ? 'high-contrast' : ''}`} data-tour-id="simplified-text-card">
+      <style>{`
+        .high-contrast { background-color: #000 !important; }
+        .high-contrast p, .high-contrast h2, .high-contrast li, .high-contrast strong { color: #fff !important; }
+        .high-contrast div { border-color: #fff !important; }
+      `}</style>
+      <div className="flex justify-between items-start mb-3 gap-4">
         <h2 className="text-xl font-semibold">Simplified Version</h2>
-        <button
-          onClick={handleCopy}
-          className="flex items-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-        >
-          {copied ? (
-            <>
-              <CheckIcon className="w-4 h-4 mr-1 text-green-500" />
-              Copied!
-            </>
-          ) : (
-            <>
-              <CopyIcon className="w-4 h-4 mr-1" />
-              Copy
-            </>
-          )}
-        </button>
+        <div className="flex items-center space-x-4">
+            <AccessibilityToolbar onFontSizeChange={setFontSize} onToggleContrast={() => setHighContrast(!highContrast)} onReset={resetAccessibility} fontSize={fontSize} />
+            <button
+              onClick={handleCopy}
+              className="flex items-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+            >
+              {copied ? (
+                <>
+                  <CheckIcon className="w-4 h-4 mr-1 text-green-500" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <CopyIcon className="w-4 h-4 mr-1" />
+                  Copy
+                </>
+              )}
+            </button>
+        </div>
       </div>
-      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{text}</p>
+      <div
+        className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap transition-all duration-200"
+        style={{ fontSize: `${fontSize}px`, lineHeight: `${fontSize * 1.6}px` }}
+      >
+        {text}
+      </div>
       
       {hasFlags && (
         <div className="mt-4 border-t dark:border-gray-700 pt-4">
