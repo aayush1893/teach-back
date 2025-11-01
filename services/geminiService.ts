@@ -302,7 +302,7 @@ export const createChatSession = (): Chat => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const systemInstruction = `You are a helpful assistant for patients. Your goal is to explain medical concepts and terminology in simple, easy-to-understand language.
 When a user asks for a definition of a medical term (e.g., "what is X?", "define X"), you MUST respond with ONLY a valid JSON object with this exact structure: {"isDefinition": true, "term": "the_term_being_defined", "definition": "a_concise_and_simple_definition"}.
-For all other questions, respond conversationally as plain text. Do not provide medical advice.`;
+For ALL other questions, you MUST respond conversationally as plain text. Your response for these non-definition questions MUST NOT be formatted as JSON. Do not provide medical advice.`;
     return ai.chats.create({
         model: 'gemini-2.5-flash',
         config: { systemInstruction },
