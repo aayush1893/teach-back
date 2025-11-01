@@ -108,7 +108,7 @@ const App: React.FC = () => {
   }, [theme]);
   
   const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'dark'));
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   };
   
   const updateInputText = (text: string) => {
@@ -352,7 +352,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {typeof Joyride !== 'undefined' && <Joyride steps={tourSteps} run={runTour} continuous showProgress showSkipButton callback={handleJoyrideCallback} styles={{ options: { zIndex: 10000, arrowColor: '#ffffff', backgroundColor: '#ffffff', primaryColor: '#2563eb', textColor: '#334155', width: 380, } }} />}
+      {typeof Joyride !== 'undefined' && <Joyride steps={tourSteps} run={runTour} continuous showProgress showSkipButton showBackButton={true} callback={handleJoyrideCallback} styles={{ options: { zIndex: 10000, arrowColor: '#ffffff', backgroundColor: '#ffffff', primaryColor: '#2563eb', textColor: '#334155', width: 380, } }} />}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <ConfirmationModal isOpen={showConfirmModal} onClose={() => setShowConfirmModal(false)} onConfirm={confirmClearSession} title="Clear Session" message="Are you sure you want to delete your saved session? This action cannot be undone." />
       <ConfirmationModal isOpen={showPostTourModal} onClose={() => {setShowPostTourModal(false); setIsDemoActive(false);}} onConfirm={() => { resetSession(true); setShowPostTourModal(false); }} title="Tour Complete!" message="Would you like to clear the demo content and start your own session?" confirmText="Yes, clear it" cancelText="No, I'll explore" />

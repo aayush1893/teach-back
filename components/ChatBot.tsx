@@ -97,22 +97,27 @@ const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive, isOffline }) => {
                     return newMessages;
                 });
             }
-             // After stream, try to parse for definition
-            try {
-                const parsed = JSON.parse(modelResponse);
-                if(parsed.isDefinition && parsed.term && parsed.definition) {
-                    setMessages(prev => {
-                        const newMessages = [...prev];
-                        newMessages[newMessages.length - 1] = {
-                            role: 'model',
-                            text: '', // Clear streaming text
-                            definition: { term: parsed.term, definition: parsed.definition }
-                        };
-                        return newMessages;
-                    });
+             // After stream, try to parse for definition. This is more robust and
+            // handles cases where the model might wrap the JSON in markdown.
+            const jsonMatch = modelResponse.match(/```json\n([\s\S]*?)\n```|({[\s\S]*})/s);
+            if (jsonMatch) {
+                try {
+                    const jsonString = jsonMatch[1] || jsonMatch[2];
+                    const parsed = JSON.parse(jsonString);
+                    if (parsed.isDefinition && parsed.term && parsed.definition) {
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            newMessages[newMessages.length - 1] = {
+                                role: 'model',
+                                text: '', // Clear streaming text which was just the JSON string
+                                definition: { term: parsed.term, definition: parsed.definition }
+                            };
+                            return newMessages;
+                        });
+                    }
+                } catch (e) {
+                    // Not a valid JSON, so we leave the plain text response as is.
                 }
-            } catch (e) {
-                // Not a definition JSON, do nothing. The text is already there.
             }
         } catch (error) {
             console.error('Chat error:', error);
