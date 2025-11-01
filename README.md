@@ -129,3 +129,7 @@ To ensure true comprehension, the app doesn't just simplify—it verifies.
 *   **Not for emergencies:** This tool should never be used in a medical emergency. If you are experiencing urgent symptoms, call your local emergency number immediately.
 *   **PDF Analysis:** The app currently analyzes only one user-selected page from a PDF at a time.
 *   **Privacy:** This application is designed with privacy in mind. All data processing occurs between your browser and the Google Gemini API. No instruction text or personal health information is stored on any intermediary server. Session data is stored exclusively in your browser's local storage.
+
+## License
+
+This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
