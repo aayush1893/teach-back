@@ -21,12 +21,13 @@ interface InputCardProps {
   setToast: (toast: {message: string, type: 'success' | 'error' | 'info'}) => void;
   translatedAudio: AudioBuffer | null;
   setTranslatedAudio: (buffer: AudioBuffer | null) => void;
+  isOffline: boolean;
 }
 
 const InputCard: React.FC<InputCardProps> = ({ 
     inputText, setInputText, onPdfUpload, isPdfUploaded, onGenerate, isLoading, 
     onSave, onLoad, onClear, hasSavedSession, isSessionActive, 
-    setToast, translatedAudio, setTranslatedAudio 
+    setToast, translatedAudio, setTranslatedAudio, isOffline
 }) => {
   const [isPdfLoading, setIsPdfLoading] = useState(false);
   const [uploadedPdfName, setUploadedPdfName] = useState('');
@@ -44,7 +45,8 @@ const InputCard: React.FC<InputCardProps> = ({
 
 
   const isAnyLoading = isLoading || isPdfLoading || isProcessingAudio || isSynthesizing;
-  const isGenerateButtonDisabled = isAnyLoading || (inputText.trim().length < 20 && !isPdfUploaded);
+  const isInteractionDisabled = isAnyLoading || isOffline;
+  const isGenerateButtonDisabled = isInteractionDisabled || (inputText.trim().length < 20 && !isPdfUploaded);
   
   // --- New Audio Translation Logic ---
 
@@ -69,7 +71,7 @@ const InputCard: React.FC<InputCardProps> = ({
             
             try {
                 const targetLangName = SUPPORTED_LANGUAGES.find(l => l.code === targetLang)?.name || 'the selected language';
-                const translatedText = await transcribeAndTranslateAudio(audioBlob, sourceLang, targetLang, targetLangName);
+                const translatedText = await transcribeAndTranslateAudio(audioBlob, targetLangName);
                 setInputText(translatedText); // This will also clear any uploaded PDF
                 setTranslatedAudio(null); // Clear previous audio
                 setToast({ message: 'Translation complete!', type: 'success' });
@@ -223,7 +225,7 @@ const InputCard: React.FC<InputCardProps> = ({
         }}
         placeholder="Paste instructions, use the microphone to translate, or upload a PDF..."
         className="w-full h-48 p-3 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow resize-y disabled:bg-gray-100 dark:disabled:bg-gray-600/50"
-        disabled={isAnyLoading || isPdfUploaded}
+        disabled={isInteractionDisabled || isPdfUploaded}
         aria-label="Medical Instructions Input"
       />
       {isPdfUploaded && (
@@ -238,26 +240,26 @@ const InputCard: React.FC<InputCardProps> = ({
         <div data-tour-id="input-buttons" className="flex items-center flex-wrap gap-2">
              <button
                 onClick={isRecording ? handleStopRecording : handleStartRecording}
-                disabled={isAnyLoading || !isAudioApiSupported || isPdfUploaded}
+                disabled={isInteractionDisabled || !isAudioApiSupported || isPdfUploaded}
                 className={`px-4 py-2 text-sm font-medium border rounded-md flex items-center justify-center transition-colors ${isRecording ? 'text-red-700 bg-red-100 border-red-300 hover:bg-red-200 dark:text-red-300 dark:bg-red-900/50 dark:border-red-700 dark:hover:bg-red-900' : 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100 dark:text-blue-300 dark:bg-blue-900/50 dark:border-blue-700 dark:hover:bg-blue-900'} disabled:opacity-50 disabled:cursor-not-allowed`}
-                title={!isAudioApiSupported ? "Audio recording not supported in your browser" : (isRecording ? "Stop Recording" : "Start Recording")}
+                title={isOffline ? "Unavailable offline" : !isAudioApiSupported ? "Audio recording not supported in your browser" : (isRecording ? "Stop Recording" : "Start Recording")}
             >
                 {isRecording ? <><StopIcon className="w-4 h-4 mr-2" /> Stop Recording</> : <><MicrophoneIcon className="w-4 h-4 mr-2" /> Transcribe & Translate</>}
             </button>
             <button
                 onClick={handleListen}
-                disabled={isAnyLoading || !inputText.trim()}
+                disabled={isInteractionDisabled || !inputText.trim()}
                 className="px-4 py-2 text-sm font-medium border rounded-md flex items-center justify-center transition-colors text-gray-700 bg-white border-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Listen to the text in the selected language"
+                title={isOffline ? "Unavailable offline" : "Listen to the text in the selected language"}
             >
                 {isSynthesizing ? 'Generating...' : <><SpeakerWaveIcon className="w-4 h-4 mr-2" /> Listen</>}
             </button>
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" className="hidden" disabled={isAnyLoading} />
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" className="hidden" disabled={isInteractionDisabled} />
             <button
                 onClick={handleUploadClick}
-                disabled={isAnyLoading}
+                disabled={isInteractionDisabled}
                 className="px-4 py-2 text-sm font-medium border rounded-md flex items-center justify-center transition-colors text-gray-700 bg-white border-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Upload PDF (vision-based analysis)"
+                title={isOffline ? "Unavailable offline" : "Upload PDF (vision-based analysis)"}
             >
                 {isPdfLoading ? 'Analyzing...' : <><UploadIcon className="w-4 h-4 mr-2" /> Upload PDF</>}
             </button>
@@ -268,7 +270,7 @@ const InputCard: React.FC<InputCardProps> = ({
           disabled={isGenerateButtonDisabled}
           className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:bg-gray-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:scale-100 order-first sm:order-last"
         >
-          {isLoading || isProcessingAudio || isPdfLoading ? (
+          {isOffline ? 'Currently Offline' : (isLoading || isProcessingAudio || isPdfLoading) ? (
             <>
               <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -285,9 +287,9 @@ const InputCard: React.FC<InputCardProps> = ({
         </button>
       </div>
        <div data-tour-id="session-buttons" className="mt-6 border-t dark:border-gray-700 pt-4 flex flex-col sm:flex-row items-stretch sm:items-center sm:space-x-2 space-y-2 sm:space-y-0">
-            <button onClick={onLoad} disabled={!hasSavedSession || isAnyLoading} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Load Session</button>
-            <button onClick={onSave} disabled={!isSessionActive || isAnyLoading} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Save Session</button>
-            <button onClick={onClear} disabled={(!hasSavedSession && !isSessionActive) || isAnyLoading} className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border-red-200 rounded-md hover:bg-red-100 dark:text-red-300 dark:bg-red-900/50 dark:border-red-700 dark:hover:bg-red-900 disabled:opacity-50 disabled:cursor-not-allowed">Clear Session</button>
+            <button onClick={onLoad} disabled={!hasSavedSession || isInteractionDisabled} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Load Session</button>
+            <button onClick={onSave} disabled={!isSessionActive || isInteractionDisabled} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Save Session</button>
+            <button onClick={onClear} disabled={(!hasSavedSession && !isSessionActive) || isInteractionDisabled} className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border-red-200 rounded-md hover:bg-red-100 dark:text-red-300 dark:bg-red-900/50 dark:border-red-700 dark:hover:bg-red-900 disabled:opacity-50 disabled:cursor-not-allowed">Clear Session</button>
         </div>
     </div>
   );

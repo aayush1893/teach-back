@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Modality, Blob, LiveServerMessage } from '@google/genai';
 import { ChatMessage } from '../types';
 import { connectLiveSession } from '../services/geminiService';
-import { MicrophoneIcon, StopIcon, SparklesIcon } from './icons';
+import { MicrophoneIcon, StopIcon, SparklesIcon, UserIcon } from './icons';
 import { mockLiveTranscript } from '../data/mockChatData';
 
 const isApiSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext || (window as any).webkitAudioContext));
@@ -50,11 +50,12 @@ async function decodeAudioData(
 
 interface LiveConversationProps {
     isDemoActive: boolean;
+    isOffline: boolean;
 }
 
 type LiveSession = Awaited<ReturnType<typeof connectLiveSession>>;
 
-const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive }) => {
+const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive, isOffline }) => {
     const [transcript, setTranscript] = useState<ChatMessage[]>([]);
     const [isConnecting, setIsConnecting] = useState(false);
     const [isLive, setIsLive] = useState(false);
@@ -208,8 +209,8 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive }) => 
                  <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Live Q&A</h2>
                  <button
                     onClick={isLive || isConnecting ? stopSession : startSession}
-                    disabled={!isApiSupported || isDemoActive}
-                    title={!isApiSupported ? "Your browser does not support the necessary APIs for this feature." : (isLive ? "End Session" : "Start Live Q&A")}
+                    disabled={!isApiSupported || isDemoActive || isOffline}
+                    title={isOffline ? "Live Q&A is unavailable offline" : !isApiSupported ? "Your browser does not support the necessary APIs for this feature." : (isLive ? "End Session" : "Start Live Q&A")}
                     className={`px-4 py-2 text-sm font-medium border rounded-md flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isLive || isConnecting ? 'text-red-700 bg-red-100 border-red-300 hover:bg-red-200 dark:text-red-300 dark:bg-red-900/50 dark:border-red-700 dark:hover:bg-red-900' : 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100 dark:text-blue-300 dark:bg-blue-900/50 dark:border-blue-700 dark:hover:bg-blue-900'}`}
                  >
                      {isConnecting ? (
@@ -227,7 +228,9 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive }) => 
             <div ref={transcriptContainerRef} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
                  {!isLive && displayTranscript.length === 0 && !isDemoActive && (
                     <div className="text-center text-gray-500 dark:text-gray-400 pt-10">
-                         {!isApiSupported ? (
+                         {isOffline ? (
+                            <p>Live Q&A is unavailable while offline.</p>
+                         ) : !isApiSupported ? (
                             <p>Sorry, your browser doesn't support the required features for live conversations.</p>
                         ) : (
                             <p>Click "Start Live Q&A" to begin a voice conversation.</p>
@@ -236,10 +239,20 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive }) => 
                 )}
                 {displayTranscript.map((msg, index) => (
                     <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                        {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5"/></div>}
+                        {msg.role === 'model' && 
+                            <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center flex-shrink-0">
+                                <SparklesIcon className="w-5 h-5"/>
+                            </div>
+                        }
                         <div className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
+                           <p className="text-xs font-semibold mb-1 text-gray-600 dark:text-gray-400">{msg.role === 'user' ? 'You' : 'Assistant'}</p>
                            <p className="text-sm">{msg.text}</p>
                         </div>
+                        {msg.role === 'user' && 
+                            <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center flex-shrink-0 dark:bg-gray-600 dark:text-gray-300">
+                                <UserIcon className="w-5 h-5"/>
+                            </div>
+                        }
                     </div>
                 ))}
                  {isLive && transcript.length === 0 && (

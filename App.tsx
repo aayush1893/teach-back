@@ -66,6 +66,7 @@ const App: React.FC = () => {
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   const [runTour, setRunTour] = useState(false);
   const [isDemoActive, setIsDemoActive] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
     // Check for saved theme preference on initial load
@@ -77,6 +78,18 @@ const App: React.FC = () => {
     if (localStorage.getItem(SESSION_STORAGE_KEY)) {
         setHasSavedSession(true);
     }
+
+    // Offline detection
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   useEffect(() => {
@@ -342,6 +355,12 @@ const App: React.FC = () => {
       <FeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} />
 
       <main className="flex-grow container mx-auto p-4 sm:p-6 space-y-6">
+          {isOffline && (
+            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md dark:bg-yellow-900/40 dark:text-yellow-200 dark:border-yellow-600" role="status">
+              <p className="font-bold">You are offline</p>
+              <p className="text-sm">Some features, like generating new content or live chat, are unavailable. You can still load a saved session.</p>
+            </div>
+          )}
           <nav data-tour-id="tabs" className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm border dark:border-gray-700 flex flex-wrap items-center justify-center gap-2" role="tablist">
             <TabButton tabName="teach-back" label="Teach-Back" />
             <TabButton tabName="chat-helper" label="Chat Helper" />
@@ -371,7 +390,9 @@ const App: React.FC = () => {
                   isSessionActive={isSessionActive} 
                   setToast={setToast} 
                   translatedAudio={translatedAudio} 
-                  setTranslatedAudio={setTranslatedAudio} />
+                  setTranslatedAudio={setTranslatedAudio}
+                  isOffline={isOffline}
+                />
                 
                 {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md dark:bg-red-900/30 dark:text-red-200 dark:border-red-600" role="alert"><p className="font-bold">An Error Occurred</p><p>{error}</p></div>}
                 
@@ -391,10 +412,10 @@ const App: React.FC = () => {
              </div>
           </div>
           <div data-tour-id="chat-helper-content" role="tabpanel" hidden={activeTab !== 'chat-helper'}>
-             <ChatBot isDemoActive={isDemoActive} />
+             <ChatBot isDemoActive={isDemoActive} isOffline={isOffline} />
           </div>
            <div data-tour-id="live-qa-content" role="tabpanel" hidden={activeTab !== 'live-qa'}>
-             <LiveConversation isDemoActive={isDemoActive} />
+             <LiveConversation isDemoActive={isDemoActive} isOffline={isOffline} />
           </div>
       </main>
       

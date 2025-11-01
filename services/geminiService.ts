@@ -210,8 +210,6 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
 
 export const transcribeAndTranslateAudio = async (
   audioBlob: Blob,
-  sourceLang: Language,
-  targetLang: Language,
   targetLangName: string
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -223,28 +221,25 @@ export const transcribeAndTranslateAudio = async (
         data: base64Audio,
       },
     };
+    
+    // --- OPTIMIZED: Single API call for transcription and translation ---
+    const prompt = `Please transcribe the following audio and then provide ONLY the translation of the transcribed text into ${targetLangName}. Do not include the original transcription in your final response.`;
 
-    const transcribeResponse = await ai.models.generateContent({
+    const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: {
-            parts: [
-                audioPart,
-                { text: `Transcribe the following audio. The speaker's language is ${sourceLang}.` }
-            ]
+            parts: [ audioPart, { text: prompt } ]
         },
     });
-    const transcribedText = transcribeResponse.text;
-
-    if (!transcribedText.trim()) {
-        throw new Error("Transcription failed or returned empty text.");
-    }
-
-    const translateResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `Translate the following text to ${targetLangName}:\n\n---\n${transcribedText}\n---`,
-    });
     
-    return translateResponse.text;
+    const translatedText = response.text;
+    
+    if (!translatedText.trim()) {
+        throw new Error("Translation failed or returned empty text.");
+    }
+    
+    return translatedText;
+
   } catch (error) {
     console.error("Transcription and translation pipeline failed:", error);
     throw new Error("Failed to process audio. Please try again.");

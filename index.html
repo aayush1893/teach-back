@@ -6,6 +6,9 @@
     <meta name="theme-color" content="#2563eb"/>
     <link rel="manifest" href="/manifest.json" />
     <title>Teach-Back Engine</title>
+    <!-- Tailwind is loaded via a JIT CDN script. Subresource Integrity (SRI)
+         is not applicable here as the script's content is not static.
+         In a production build, Tailwind CSS would be compiled into a static file. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       // Configure Tailwind to use class-based dark mode.
@@ -14,8 +17,8 @@
         darkMode: 'class',
       }
     </script>
-    <!-- React Joyride styles -->
-    <link rel="stylesheet" href="https://unpkg.com/react-joyride/dist/react-joyride.css">
+    <!-- React Joyride styles (version pinned for stability) -->
+    <link rel="stylesheet" href="https://unpkg.com/react-joyride@2.8.2/dist/react-joyride.css">
     <script>
       // Prevents Flash of Incorrect Theme by applying the saved theme before the page loads.
       (function() {
@@ -101,13 +104,13 @@
 }
 </script>
   <!-- PDF.js library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha512-pce4mSS7E2eOvy7qLglSle42E9FZC6bI4vBqejT2gG03x+3cE4d5OynIqfUfHlXoivP9rI3Vp6rXoK6bA5Gfaw==" crossorigin="anonymous"></script>
   <script>
     // Point to the worker script provided by the CDN
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
   </script>
-  <!-- React Joyride script -->
-  <script src="https://unpkg.com/react-joyride/dist/react-joyride.min.js"></script>
+  <!-- React Joyride script (version pinned for stability) -->
+  <script src="https://unpkg.com/react-joyride@2.8.2/dist/react-joyride.min.js"></script>
 </head>
   <body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300">
     <div id="root"></div>

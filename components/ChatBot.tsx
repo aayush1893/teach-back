@@ -10,11 +10,12 @@ import GlossaryModal from './GlossaryModal';
 
 interface ChatBotProps {
     isDemoActive: boolean;
+    isOffline: boolean;
 }
 
 type Chat = ReturnType<typeof createChatSession>;
 
-const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive }) => {
+const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive, isOffline }) => {
     const [chat, setChat] = useState<Chat | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState('');
@@ -152,13 +153,13 @@ const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive }) => {
                             value={currentMessage}
                             onChange={(e) => setCurrentMessage(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                            placeholder="Ask a question..."
+                            placeholder={isOffline ? "Chat is unavailable offline" : "Ask a question..."}
                             className="flex-grow p-2 bg-white dark:bg-gray-600 dark:text-gray-100 border border-gray-300 dark:border-gray-500 rounded-md focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-700"
-                            disabled={isLoading || isDemoActive}
+                            disabled={isLoading || isDemoActive || isOffline}
                         />
                         <button
                             onClick={handleSendMessage}
-                            disabled={isLoading || !currentMessage.trim() || isDemoActive}
+                            disabled={isLoading || !currentMessage.trim() || isDemoActive || isOffline}
                             className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed"
                             aria-label="Send message"
                         >
