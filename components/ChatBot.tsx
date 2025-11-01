@@ -154,6 +154,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive, isOffline }) => {
                            disabled={isDemoActive || isLoading}
                            className="flex items-center text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 disabled:opacity-50"
                            aria-label="Reset conversation"
+                           title="Reset conversation"
                          >
                             <RefreshIcon className="w-4 h-4 mr-1 sm:mr-2" />
                             <span className="hidden sm:inline">Reset</span>
@@ -162,6 +163,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive, isOffline }) => {
                             onClick={() => setShowGlossaryModal(true)}
                             className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex-shrink-0"
                             aria-label="Open my glossary"
+                            title="Open my glossary"
                         >
                             <BookOpenIcon className="w-5 h-5 mr-1 sm:mr-2" />
                             <span className="hidden sm:inline">My Glossary</span> ({glossary.length})
@@ -181,6 +183,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive, isOffline }) => {
                                         onClick={() => addTerm(msg.definition)}
                                         disabled={isTermInGlossary(msg.definition.term)}
                                         className="mt-2 flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+                                        title={isTermInGlossary(msg.definition.term) ? 'This term is already in your glossary' : 'Add to my glossary'}
                                     >
                                         {isTermInGlossary(msg.definition.term) ? (
                                             <>
@@ -228,6 +231,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive, isOffline }) => {
                             disabled={isLoading || !currentMessage.trim() || isDemoActive || isOffline}
                             className="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed"
                             aria-label="Send message"
+                            title="Send message"
                         >
                             <SendIcon className="w-6 h-6" />
                         </button>

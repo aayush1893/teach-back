@@ -58,6 +58,7 @@ const SimplifiedTextCard: React.FC<{ text: string; safetyFlags: SafetyFlags }> =
             <button
               onClick={handleCopy}
               className="flex items-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+              title="Copy simplified text"
             >
               {copied ? (
                 <>

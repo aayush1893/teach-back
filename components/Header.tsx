@@ -26,13 +26,13 @@ const Header: React.FC<HeaderProps> = ({ onHelpClick, onDisclaimerClick, onTourC
         </div>
         <div className="flex items-center space-x-2 sm:space-x-4">
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-          <button onClick={onTourClick} className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" aria-label="Start Tour / Demo">
+          <button onClick={onTourClick} title="Start Tour / Demo" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" aria-label="Start Tour / Demo">
             <PlayCircleIcon className="w-6 h-6" />
           </button>
-          <button onClick={onHelpClick} className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" aria-label="Help/Tutorial">
+          <button onClick={onHelpClick} title="Help" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" aria-label="Help/Tutorial">
             <HelpIcon className="w-6 h-6" />
           </button>
-          <button onClick={onDisclaimerClick} className="text-gray-600 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors" aria-label="Disclaimer">
+          <button onClick={onDisclaimerClick} title="Disclaimer" className="text-gray-600 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors" aria-label="Disclaimer">
             <DisclaimerIcon className="w-6 h-6" />
           </button>
         </div>

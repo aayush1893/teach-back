@@ -152,9 +152,23 @@ const App: React.FC = () => {
   };
 
   const handleGenerate = async () => {
+    if (isDemoActive) {
+        setIsLoading(true);
+        await new Promise(resolve => setTimeout(resolve, 800)); // Simulate loading
+        
+        setClassificationResult({ context: 'discharge', confidence: 0.92, top_k: [], unknown_reasons: [] });
+        setGeneratedContent(mockTeachBackData);
+        setQuizState(QuizState.InProgress);
+        setSessionMetrics({ attempts: 1, masteryTime: null, readingGradeAfter: mockTeachBackData.reading_grade_after });
+        setUserAnswers({});
+        startTimer();
+        setIsLoading(false);
+        return;
+    }
+
     setIsLoading(true);
     setError(null);
-    resetSession();
+    resetSession(); // Clears previous results, preserves input text
     startTimer();
     
     try {
@@ -302,18 +316,12 @@ const App: React.FC = () => {
   };
   
   const handleStartTour = () => {
+    resetSession(true); // Always start from a clean slate
     setIsDemoActive(true);
-    updateInputText(sampleInputText);
-    updateInputImage(null);
-    setClassificationResult({ context: 'discharge', confidence: 0.92, top_k: [], unknown_reasons: [] });
-    setGeneratedContent(mockTeachBackData);
-    setQuizState(QuizState.InProgress);
-    setUserAnswers({});
-    setSessionMetrics({ attempts: 1, masteryTime: null, readingGradeAfter: mockTeachBackData.reading_grade_after });
-    setElapsedTime(0);
-    startTimer(0);
+    setInputText(sampleInputText); // Only set the input text
     setActiveTab('teach-back');
     
+    // Delay slightly to ensure state updates before tour starts
     setTimeout(() => setRunTour(true), 100);
   };
 
@@ -354,8 +362,23 @@ const App: React.FC = () => {
     <div className="min-h-screen flex flex-col">
       {typeof Joyride !== 'undefined' && <Joyride steps={tourSteps} run={runTour} continuous showProgress showSkipButton showBackButton={true} callback={handleJoyrideCallback} styles={{ options: { zIndex: 10000, arrowColor: '#ffffff', backgroundColor: '#ffffff', primaryColor: '#2563eb', textColor: '#334155', width: 380, } }} />}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      <ConfirmationModal 
+          isOpen={showPostTourModal} 
+          onClose={() => {
+              setShowPostTourModal(false); 
+              setIsDemoActive(false);
+          }} 
+          onConfirm={() => { 
+              resetSession(true); 
+              setShowPostTourModal(false); 
+              setIsDemoActive(false);
+          }} 
+          title="Tour Complete!" 
+          message="Would you like to clear the demo content and start your own session?" 
+          confirmText="Yes, clear it" 
+          cancelText="No, I'll explore" 
+      />
       <ConfirmationModal isOpen={showConfirmModal} onClose={() => setShowConfirmModal(false)} onConfirm={confirmClearSession} title="Clear Session" message="Are you sure you want to delete your saved session? This action cannot be undone." />
-      <ConfirmationModal isOpen={showPostTourModal} onClose={() => {setShowPostTourModal(false); setIsDemoActive(false);}} onConfirm={() => { resetSession(true); setShowPostTourModal(false); }} title="Tour Complete!" message="Would you like to clear the demo content and start your own session?" confirmText="Yes, clear it" cancelText="No, I'll explore" />
       <Header onHelpClick={() => setShowHelpModal(true)} onDisclaimerClick={() => setShowDisclaimerModal(true)} onTourClick={handleStartTour} theme={theme} onToggleTheme={toggleTheme} />
       <HelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
       <DisclaimerModal 

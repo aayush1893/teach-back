@@ -30,7 +30,7 @@ const GlossaryModal: React.FC<GlossaryModalProps> = ({ isOpen, onClose, glossary
                         <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100">{item.term}</h3>
                         <p className="text-gray-600 dark:text-gray-300 mt-1">{item.definition}</p>
                     </div>
-                    <button onClick={() => onRemove(item.term)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 ml-4" aria-label={`Remove ${item.term} from glossary`}>
+                    <button onClick={() => onRemove(item.term)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1 ml-4" aria-label={`Remove ${item.term} from glossary`} title={`Remove ${item.term} from glossary`}>
                         <TrashIcon className="w-5 h-5" />
                     </button>
                 </div>

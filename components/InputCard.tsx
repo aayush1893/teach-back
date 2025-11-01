@@ -265,7 +265,7 @@ const InputCard: React.FC<InputCardProps> = ({
         <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md text-sm space-y-3">
             <div className="flex justify-between items-center">
                 <p className="text-blue-800 dark:text-blue-200 font-medium">Loaded: <span className="font-normal">{uploadedPdfName}</span></p>
-                <button onClick={handleClearPdf} className="text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100" aria-label="Clear uploaded PDF"><XIcon className="w-5 h-5"/></button>
+                <button onClick={handleClearPdf} title="Clear uploaded PDF" className="text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100" aria-label="Clear uploaded PDF"><XIcon className="w-5 h-5"/></button>
             </div>
             <div className="flex items-center gap-2">
                 <label htmlFor="pdf-page" className="text-blue-800 dark:text-blue-200">Page:</label>
@@ -294,7 +294,7 @@ const InputCard: React.FC<InputCardProps> = ({
       {isPdfUploaded && (
         <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-md flex justify-between items-center text-sm">
             <p className="text-green-800 dark:text-green-200 font-medium">Ready: <span className="font-normal">{uploadedPdfName} (Page {selectedPdfPage})</span></p>
-            <button onClick={handleClearPdf} className="text-green-600 dark:text-green-300 hover:text-green-800 dark:hover:text-green-100" aria-label="Clear uploaded PDF"><XIcon className="w-5 h-5"/></button>
+            <button onClick={handleClearPdf} title="Clear uploaded PDF" className="text-green-600 dark:text-green-300 hover:text-green-800 dark:hover:text-green-100" aria-label="Clear uploaded PDF"><XIcon className="w-5 h-5"/></button>
         </div>
       )}
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">For text, minimum 20 characters. For PDF, select a page to analyze. No personal data is saved.</p>
@@ -350,9 +350,9 @@ const InputCard: React.FC<InputCardProps> = ({
         </button>
       </div>
        <div data-tour-id="session-buttons" className="mt-6 border-t dark:border-gray-700 pt-4 flex flex-col sm:flex-row items-stretch sm:items-center sm:space-x-2 space-y-2 sm:space-y-0">
-            <button onClick={onLoad} disabled={!hasSavedSession || isInteractionDisabled} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Load Session</button>
-            <button onClick={onSave} disabled={!isSessionActive || isInteractionDisabled} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Save Session</button>
-            <button onClick={onClear} disabled={(!hasSavedSession && !isSessionActive) || isInteractionDisabled} className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border-red-200 rounded-md hover:bg-red-100 dark:text-red-300 dark:bg-red-900/50 dark:border-red-700 dark:hover:bg-red-900 disabled:opacity-50 disabled:cursor-not-allowed">Clear Session</button>
+            <button onClick={onLoad} title="Load your previously saved session" disabled={!hasSavedSession || isInteractionDisabled} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Load Session</button>
+            <button onClick={onSave} title="Save the current session to your browser" disabled={!isSessionActive || isInteractionDisabled} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed">Save Session</button>
+            <button onClick={onClear} title="Clear the current session and saved data" disabled={(!hasSavedSession && !isSessionActive) || isInteractionDisabled} className="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 border-red-200 rounded-md hover:bg-red-100 dark:text-red-300 dark:bg-red-900/50 dark:border-red-700 dark:hover:bg-red-900 disabled:opacity-50 disabled:cursor-not-allowed">Clear Session</button>
         </div>
     </div>
   );
