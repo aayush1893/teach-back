@@ -58,16 +58,25 @@ const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive, isOffline }) => {
         setHighContrast(false);
     };
 
+    const startNewChat = () => {
+        const newChat = createChatSession();
+        setChat(newChat);
+        setMessages([{ role: 'model', text: 'Hello! How can I help you understand your medical instructions today? You can ask me to define a term like "What is an anticoagulant?" or rephrase a sentence.' }]);
+    };
 
     useEffect(() => {
         if (isDemoActive) {
             setMessages(mockChatMessages);
         } else {
-            const newChat = createChatSession();
-            setChat(newChat);
-            setMessages([{ role: 'model', text: 'Hello! How can I help you understand your medical instructions today? You can ask me to define a term like "What is an anticoagulant?" or rephrase a sentence.' }]);
+            startNewChat();
         }
     }, [isDemoActive]);
+    
+    const handleReset = () => {
+        if (isDemoActive || isLoading) return;
+        startNewChat();
+        setCurrentMessage('');
+    };
 
     useEffect(() => {
         if (chatContainerRef.current) {
@@ -140,6 +149,15 @@ const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive, isOffline }) => {
                     <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex-shrink-0">Chat Helper</h2>
                     <div className="flex items-center space-x-2 sm:space-x-4">
                          <AccessibilityToolbar onFontSizeChange={setFontSize} onToggleContrast={() => setHighContrast(!highContrast)} onReset={resetAccessibility} fontSize={fontSize} />
+                         <button
+                           onClick={handleReset}
+                           disabled={isDemoActive || isLoading}
+                           className="flex items-center text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 disabled:opacity-50"
+                           aria-label="Reset conversation"
+                         >
+                            <RefreshIcon className="w-4 h-4 mr-1 sm:mr-2" />
+                            <span className="hidden sm:inline">Reset</span>
+                         </button>
                          <button 
                             onClick={() => setShowGlossaryModal(true)}
                             className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex-shrink-0"

@@ -232,6 +232,11 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive, isOff
         }
     };
     
+    const handleClearTranscript = () => {
+        if (isLive || isConnecting || isDemoActive) return;
+        setTranscript([]);
+    };
+
     useEffect(() => {
         return () => { stopSession(); };
     }, [stopSession]);
@@ -250,6 +255,16 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive, isOff
                  <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex-shrink-0">Live Q&A</h2>
                  <div className="flex items-center space-x-2 sm:space-x-4">
                      <AccessibilityToolbar onFontSizeChange={setFontSize} onToggleContrast={() => setHighContrast(!highContrast)} onReset={resetAccessibility} fontSize={fontSize} />
+                     <button
+                        onClick={handleClearTranscript}
+                        disabled={isLive || isConnecting || isDemoActive}
+                        className="flex items-center text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 disabled:opacity-50"
+                        title={isLive ? "Stop the session to clear transcript" : "Clear transcript"}
+                        aria-label="Clear transcript"
+                     >
+                        <RefreshIcon className="w-4 h-4 mr-1 sm:mr-2" />
+                        <span className="hidden sm:inline">Clear</span>
+                     </button>
                      <button
                         onClick={isLive || isConnecting ? stopSession : startSession}
                         disabled={!isApiSupported || isDemoActive || isOffline}
