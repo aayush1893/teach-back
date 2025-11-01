@@ -25,9 +25,10 @@ import { XIcon, LightbulbIcon } from './components/icons';
 
 declare const Joyride: any;
 
-const SESSION_STORAGE_KEY = 'teachback_session_v2'; // Version bump for new data structure
+const SESSION_STORAGE_KEY = 'teachback_session_v2';
 const TOUR_STORAGE_KEY = 'teachback_tour_completed_v1';
 const THEME_STORAGE_KEY = 'teachback-theme';
+const DISCLAIMER_ACCEPTED_KEY = 'teachback_disclaimer_accepted_v1';
 const OVERRIDE_COUNTER_KEY = 'tbe_override_used';
 const UNKNOWN_COUNTER_KEY = 'tbe_unknown_count';
 const MASTERY_COUNT_KEY = 'tbe_mastery_count';
@@ -59,6 +60,7 @@ const App: React.FC = () => {
 
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
+  const [isDisclaimerForced, setIsDisclaimerForced] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showPostTourModal, setShowPostTourModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -69,7 +71,6 @@ const App: React.FC = () => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
-    // Check for saved theme preference on initial load
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
@@ -78,8 +79,13 @@ const App: React.FC = () => {
     if (localStorage.getItem(SESSION_STORAGE_KEY)) {
         setHasSavedSession(true);
     }
+    
+    const disclaimerAccepted = localStorage.getItem(DISCLAIMER_ACCEPTED_KEY) === 'true';
+    if (!disclaimerAccepted) {
+      setShowDisclaimerModal(true);
+      setIsDisclaimerForced(true);
+    }
 
-    // Offline detection
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
 
@@ -93,7 +99,6 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Apply theme class to the root element and save preference
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -103,7 +108,7 @@ const App: React.FC = () => {
   }, [theme]);
   
   const toggleTheme = () => {
-    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'dark'));
   };
   
   const updateInputText = (text: string) => {
@@ -114,6 +119,12 @@ const App: React.FC = () => {
   const updateInputImage = (image: ImagePart | null) => {
     setInputImage(image);
     if (inputText) setInputText('');
+  };
+  
+  const handleAcceptDisclaimer = () => {
+    localStorage.setItem(DISCLAIMER_ACCEPTED_KEY, 'true');
+    setShowDisclaimerModal(false);
+    setIsDisclaimerForced(false);
   };
 
   const resetSession = useCallback((clearInput = false) => {
@@ -132,7 +143,7 @@ const App: React.FC = () => {
   }, [resetTimer]);
   
   const runGenerator = async (context: Context) => {
-      setGeneratedContent(null); // Clear previous content before generating new
+      setGeneratedContent(null); 
       const data = await generateStructuredData(inputText, context, inputImage ?? undefined);
       setGeneratedContent(data);
       setQuizState(QuizState.InProgress);
@@ -147,7 +158,6 @@ const App: React.FC = () => {
     startTimer();
     
     try {
-      // Stage 1: Classify
       const classification = await classifyText(inputText, inputImage ?? undefined);
       setClassificationResult(classification);
       if (classification.context === 'unknown') {
@@ -155,7 +165,6 @@ const App: React.FC = () => {
         localStorage.setItem(UNKNOWN_COUNTER_KEY, (unknownCount + 1).toString());
       }
       
-      // Stage 2: Generate
       setSessionMetrics({ attempts: 1, masteryTime: null, readingGradeAfter: null });
       await runGenerator(classification.context);
 
@@ -199,13 +208,12 @@ const App: React.FC = () => {
       const masteryTime = stopTimer();
       setSessionMetrics(prev => ({ ...prev, masteryTime }));
       
-      // Smart feedback prompt logic
       const masteryCount = parseInt(localStorage.getItem(MASTERY_COUNT_KEY) || '0', 10);
       localStorage.setItem(MASTERY_COUNT_KEY, (masteryCount + 1).toString());
       
-      if (masteryCount === 0) { // First time mastering anything
+      if (masteryCount === 0) {
           setShowFeedbackModal(true);
-      } else if (Math.random() < 0.33) { // ~33% chance on subsequent masteries
+      } else if (Math.random() < 0.33) {
           setShowFeedbackModal(true);
       }
     }
@@ -216,7 +224,6 @@ const App: React.FC = () => {
     setUserAnswers({});
     setSessionMetrics(prev => ({ ...prev, attempts: prev.attempts + 1 }));
 
-    // Shuffle questions for the new attempt
     if (generatedContent) {
       const shuffledQA = [...generatedContent.qa].sort(() => Math.random() - 0.5);
       setGeneratedContent(prevContent => {
@@ -351,7 +358,11 @@ const App: React.FC = () => {
       <ConfirmationModal isOpen={showPostTourModal} onClose={() => {setShowPostTourModal(false); setIsDemoActive(false);}} onConfirm={() => { resetSession(true); setShowPostTourModal(false); }} title="Tour Complete!" message="Would you like to clear the demo content and start your own session?" confirmText="Yes, clear it" cancelText="No, I'll explore" />
       <Header onHelpClick={() => setShowHelpModal(true)} onDisclaimerClick={() => setShowDisclaimerModal(true)} onTourClick={handleStartTour} theme={theme} onToggleTheme={toggleTheme} />
       <HelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
-      <DisclaimerModal isOpen={showDisclaimerModal} onClose={() => setShowDisclaimerModal(false)} />
+      <DisclaimerModal 
+        isOpen={showDisclaimerModal} 
+        onClose={() => { if (!isDisclaimerForced) setShowDisclaimerModal(false); }}
+        onAccept={handleAcceptDisclaimer}
+      />
       <FeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} />
 
       <main className="flex-grow container mx-auto p-4 sm:p-6 space-y-6">

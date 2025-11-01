@@ -5,9 +5,10 @@ import { XIcon } from './icons';
 interface DisclaimerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onAccept: () => void;
 }
 
-const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) => {
+const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose, onAccept }) => {
   if (!isOpen) return null;
 
   return (
@@ -29,7 +30,7 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
           </div>
         </div>
         <div className="p-4 bg-gray-50 dark:bg-gray-900 text-right sticky bottom-0 border-t dark:border-gray-700">
-          <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-500">
+          <button onClick={onAccept} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-500">
             I Understand
           </button>
         </div>

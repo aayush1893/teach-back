@@ -1,6 +1,6 @@
 # Teach-Back Engine: Intelligent Communication for Health
 
-![Teach-Back Engine Screenshot](https://storage.googleapis.com/aistudio-programmable-ui-project-images/5a21e42a-99f5-46f9-813c-33b2fe92f15f.png)
+![Teach-Back Engine Screenshot](https://storage.googleapis.com/aistudio-programmable-ui-project-images/b4b3b123-f3c2-42b7-b089-6689d0793bdf.png)
 
 The **Teach-Back Engine** is a sophisticated web application designed to bridge the health literacy gap by transforming complex medical instructions into simple, understandable, and actionable information for patients and caregivers. It leverages the power of the Google Gemini API to not only simplify text but also to verify a user's comprehension through a dynamic, adaptive learning loop.
 
@@ -10,17 +10,58 @@ Medical jargon is a significant barrier to patient understanding. Instructions f
 
 This application digitizes and enhances the teach-back method, empowering users to check their understanding privately and at their own pace.
 
+## Getting Started (Running Locally)
+
+This project is open-source and can be run on your local machine.
+
+### Prerequisites
+
+*   [Node.js](https://nodejs.org/) (version 18 or later recommended)
+*   A package manager like [npm](https://www.npmjs.com/)
+
+### 1. API Key Setup
+
+This application requires a Google Gemini API key to function.
+
+1.  Visit [Google AI Studio](https://aistudio.google.com/app/apikey) to generate your free API key.
+2.  In the root directory of this project, create a new file named `.env`.
+3.  Add your API key to the `.env` file in the following format:
+
+    ```
+    API_KEY=YOUR_GEMINI_API_KEY_HERE
+    ```
+
+    The application is configured to automatically load this key from `process.env.API_KEY`. **Do not** share this file or commit it to version control.
+
+### 2. Installation
+
+Clone the repository and install the required dependencies from your terminal.
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/teach-back-engine.git
+cd teach-back-engine
+
+# Install dependencies
+npm install
+```
+
+### 3. Running the Application
+
+After installation, you can run the application using your local development environment's start command (e.g., `npm start`). The application is built with modern ES modules and should run in any up-to-date web browser.
+
+
 ## Features at a Glance
 
 | Structured Data Extraction | Adaptive Quiz & Remediation |
 | :---: | :---: |
-| ![Screenshot of the Domain Details Card showing extracted prescription information like dose and frequency.](https://storage.googleapis.com/aistudio-programmable-ui-project-images/tbe_screenshot_domain_details.png) | ![Screenshot of the quiz showing one incorrect answer with a detailed rationale and a re-teaching remediation box below.](https://storage.googleapis.com/aistudio-programmable-ui-project-images/tbe_screenshot_quiz_remediation.png) |
+| ![Screenshot of the Domain Details Card showing extracted prescription information like dose and frequency.](https://storage.googleapis.com/aistudio-programmable-ui-project-images/4960d70b-68d1-4202-a16f-7c653493721d.png) | ![Screenshot of the quiz showing one incorrect answer with a detailed rationale and a re-teaching remediation box below.](https://storage.googleapis.com/aistudio-programmable-ui-project-images/e775a2cb-0371-419b-a78a-c60f4e3b7b8a.png) |
 | The app intelligently identifies the document type and extracts key information into a clean, easy-to-read summary card. | The quiz provides instant feedback. If you miss a question, a re-teaching module helps you understand the concept before you try again. |
 
 | Chat Helper & Personal Glossary | Live Voice Q&A |
 | :---: | :---: |
-| ![Screenshot of the Chat Helper defining a medical term, with a button to add the definition to a personal glossary.](https://storage.googleapis.com/aistudio-programmable-ui-project-images/tbe_screenshot_chat_glossary.png) | ![Screenshot of the Live Q&A tab showing a real-time transcript of a voice conversation between the user and the AI assistant.](https://storage.googleapis.com/aistudio-programmable-ui-project-images/tbe_screenshot_live_qa.png) |
-| Ask for definitions of complex terms and save them to your personal glossary for future reference. | Have a natural, hands-free conversation with the AI assistant. The entire dialogue is transcribed in real-time. |
+| ![Screenshot of the Chat Helper, now with accessibility controls (font size, contrast) in the header.](https://storage.googleapis.com/aistudio-programmable-ui-project-images/2a733732-c645-42f0-a006-c8702b85d398.png) | ![Screenshot of the Live Voice Q&A, now with accessibility controls (font size, contrast) in the header above the transcript.](https://storage.googleapis.com/aistudio-programmable-ui-project-images/22718105-09c0-482a-9e4a-9fd44f83b28b.png) |
+| Ask for definitions of complex terms and save them to your personal glossary. Accessibility controls are available. | Have a natural, hands-free conversation with the AI assistant, with full accessibility controls for the transcript. |
 
 
 ## Core Features
@@ -43,7 +84,7 @@ The app employs a powerful two-stage process powered by the Gemini API:
 ### 2. Multi-Modal Input
 Users can provide information in the most convenient way:
 *   **Text:** Paste text directly into the input area.
-*   **PDF Upload (Vision):** Upload a PDF document. The app uses `pdf.js` to render the a user-selected page as an image, which is then analyzed by Gemini's vision capabilities.
+*   **PDF Upload (Vision):** Upload a PDF document. The app uses `pdf.js` to render a user-selected page as an image, which is then analyzed by Gemini's vision capabilities.
 *   **Audio Transcription & Translation:** Dictate instructions in one of several supported languages. The app transcribes the audio and can translate it into another language, populating the input field with the result.
 
 ### 3. Adaptive Quiz & Mastery Loop

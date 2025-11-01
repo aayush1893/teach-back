@@ -29,11 +29,17 @@ const InputCard: React.FC<InputCardProps> = ({
     onSave, onLoad, onClear, hasSavedSession, isSessionActive, 
     setToast, translatedAudio, setTranslatedAudio, isOffline
 }) => {
-  const [isPdfLoading, setIsPdfLoading] = useState(false);
-  const [uploadedPdfName, setUploadedPdfName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // State for new audio feature
+  // PDF State
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [uploadedPdfName, setUploadedPdfName] = useState('');
+  const [pdfDoc, setPdfDoc] = useState<any | null>(null);
+  const [pdfTotalPages, setPdfTotalPages] = useState(0);
+  const [selectedPdfPage, setSelectedPdfPage] = useState('1');
+  const [isAnalyzingPage, setIsAnalyzingPage] = useState(false);
+
+  // Audio State
   const [sourceLang, setSourceLang] = useState<Language>('en');
   const [targetLang, setTargetLang] = useState<Language>('es');
   const [isRecording, setIsRecording] = useState(false);
@@ -44,12 +50,10 @@ const InputCard: React.FC<InputCardProps> = ({
   const isAudioApiSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
 
 
-  const isAnyLoading = isLoading || isPdfLoading || isProcessingAudio || isSynthesizing;
+  const isAnyLoading = isLoading || isPdfLoading || isProcessingAudio || isSynthesizing || isAnalyzingPage;
   const isInteractionDisabled = isAnyLoading || isOffline;
   const isGenerateButtonDisabled = isInteractionDisabled || (inputText.trim().length < 20 && !isPdfUploaded);
   
-  // --- New Audio Translation Logic ---
-
   const handleStartRecording = async () => {
     if (!isAudioApiSupported) {
         setToast({ message: "Your browser doesn't support audio recording.", type: 'error' });
@@ -72,8 +76,9 @@ const InputCard: React.FC<InputCardProps> = ({
             try {
                 const targetLangName = SUPPORTED_LANGUAGES.find(l => l.code === targetLang)?.name || 'the selected language';
                 const translatedText = await transcribeAndTranslateAudio(audioBlob, targetLangName);
-                setInputText(translatedText); // This will also clear any uploaded PDF
-                setTranslatedAudio(null); // Clear previous audio
+                setInputText(translatedText);
+                handleClearPdf();
+                setTranslatedAudio(null);
                 setToast({ message: 'Translation complete!', type: 'success' });
             } catch (error) {
                 console.error(error);
@@ -102,14 +107,12 @@ const InputCard: React.FC<InputCardProps> = ({
 
   const handleListen = async () => {
     if (translatedAudio) {
-      // Play existing audio
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const source = audioContext.createBufferSource();
       source.buffer = translatedAudio;
       source.connect(audioContext.destination);
       source.start(0);
     } else if (inputText.trim()) {
-      // Synthesize new audio
       setIsSynthesizing(true);
       setToast({ message: 'Generating audio...', type: 'info' });
       try {
@@ -129,8 +132,6 @@ const InputCard: React.FC<InputCardProps> = ({
     }
   };
 
-
-  // --- NEW Vision-based PDF Logic ---
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
@@ -140,7 +141,9 @@ const InputCard: React.FC<InputCardProps> = ({
     if (!file) return;
 
     setIsPdfLoading(true);
-    setToast({ message: 'Analyzing PDF with vision...', type: 'info' });
+    setToast({ message: 'Loading PDF...', type: 'info' });
+    handleClearPdf();
+    setInputText('');
 
     try {
         const reader = new FileReader();
@@ -148,28 +151,15 @@ const InputCard: React.FC<InputCardProps> = ({
             try {
                 const typedarray = new Uint8Array(e.target?.result as ArrayBuffer);
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                const page = await pdf.getPage(1); // Process only the first page
-                const viewport = page.getViewport({ scale: 2.0 });
-                
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-
-                await page.render({ canvasContext: context, viewport: viewport }).promise;
-                
-                const base64Data = canvas.toDataURL('image/png').split(',')[1];
-                if (!base64Data) throw new Error("Could not convert PDF page to image.");
-
-                onPdfUpload({ inlineData: { data: base64Data, mimeType: 'image/png' } });
+                setPdfDoc(pdf);
+                setPdfTotalPages(pdf.numPages);
                 setUploadedPdfName(file.name);
-                setToast({ message: 'PDF is ready to analyze!', type: 'success' });
-
+                setSelectedPdfPage('1');
+                setToast({ message: 'PDF loaded. Please select a page to analyze.', type: 'success' });
             } catch (pdfError) {
-                console.error("Error processing PDF:", pdfError);
-                setToast({ message: 'Could not process PDF. The file may be corrupted, protected, or not a valid PDF.', type: 'error' });
-                onPdfUpload(null); // Clear any partial state
-                setUploadedPdfName('');
+                console.error("Error loading PDF:", pdfError);
+                setToast({ message: 'Could not load PDF. The file may be corrupted or protected.', type: 'error' });
+                handleClearPdf();
             } finally {
                 setIsPdfLoading(false);
                 if(fileInputRef.current) fileInputRef.current.value = '';
@@ -183,9 +173,50 @@ const InputCard: React.FC<InputCardProps> = ({
     }
   };
   
+  const handleAnalyzePage = async () => {
+    if (!pdfDoc || !selectedPdfPage) return;
+
+    const pageNum = parseInt(selectedPdfPage, 10);
+    if (isNaN(pageNum) || pageNum < 1 || pageNum > pdfTotalPages) {
+        setToast({ message: `Please enter a valid page number between 1 and ${pdfTotalPages}.`, type: 'error' });
+        return;
+    }
+
+    setIsAnalyzingPage(true);
+    setToast({ message: `Analyzing page ${pageNum}...`, type: 'info' });
+
+    try {
+        const page = await pdfDoc.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 2.0 });
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+        
+        const base64Data = canvas.toDataURL('image/png').split(',')[1];
+        if (!base64Data) throw new Error("Could not convert PDF page to image.");
+
+        onPdfUpload({ inlineData: { data: base64Data, mimeType: 'image/png' } });
+        setToast({ message: `Page ${pageNum} is ready!`, type: 'success' });
+
+    } catch (error) {
+        console.error("Error analyzing page:", error);
+        setToast({ message: 'Could not analyze the selected page.', type: 'error' });
+        onPdfUpload(null);
+    } finally {
+        setIsAnalyzingPage(false);
+    }
+  };
+  
   const handleClearPdf = () => {
       onPdfUpload(null);
       setUploadedPdfName('');
+      setPdfDoc(null);
+      setPdfTotalPages(0);
+      setSelectedPdfPage('1');
   };
 
   return (
@@ -222,25 +253,57 @@ const InputCard: React.FC<InputCardProps> = ({
         onChange={(e) => {
             setInputText(e.target.value)
             setTranslatedAudio(null);
+            if (pdfDoc) handleClearPdf();
         }}
         placeholder="Paste instructions, use the microphone to translate, or upload a PDF..."
         className="w-full h-48 p-3 bg-white dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow resize-y disabled:bg-gray-100 dark:disabled:bg-gray-600/50"
-        disabled={isInteractionDisabled || isPdfUploaded}
+        disabled={isInteractionDisabled || !!pdfDoc}
         aria-label="Medical Instructions Input"
       />
-      {isPdfUploaded && (
-        <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md flex justify-between items-center text-sm">
-            <p className="text-blue-800 dark:text-blue-200 font-medium">Ready to analyze: <span className="font-normal">{uploadedPdfName}</span></p>
-            <button onClick={handleClearPdf} className="text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100" aria-label="Clear uploaded PDF"><XIcon className="w-5 h-5"/></button>
+      
+      {pdfDoc && !isPdfUploaded && (
+        <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md text-sm space-y-3">
+            <div className="flex justify-between items-center">
+                <p className="text-blue-800 dark:text-blue-200 font-medium">Loaded: <span className="font-normal">{uploadedPdfName}</span></p>
+                <button onClick={handleClearPdf} className="text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100" aria-label="Clear uploaded PDF"><XIcon className="w-5 h-5"/></button>
+            </div>
+            <div className="flex items-center gap-2">
+                <label htmlFor="pdf-page" className="text-blue-800 dark:text-blue-200">Page:</label>
+                <input 
+                    type="number" 
+                    id="pdf-page"
+                    value={selectedPdfPage}
+                    onChange={(e) => setSelectedPdfPage(e.target.value)}
+                    min="1"
+                    max={pdfTotalPages}
+                    className="w-20 p-1 text-center bg-white dark:bg-gray-700 dark:text-gray-200 border border-blue-300 dark:border-blue-600 rounded-md"
+                    disabled={isInteractionDisabled}
+                />
+                <span className="text-blue-700 dark:text-blue-300">of {pdfTotalPages}</span>
+                <button 
+                    onClick={handleAnalyzePage}
+                    disabled={isInteractionDisabled}
+                    className="ml-auto px-3 py-1.5 text-sm font-medium border rounded-md transition-colors text-blue-700 bg-blue-100 border-blue-300 hover:bg-blue-200 dark:text-blue-200 dark:bg-blue-800 dark:border-blue-600 dark:hover:bg-blue-700 disabled:opacity-50"
+                >
+                    {isAnalyzingPage ? 'Analyzing...' : 'Analyze Page'}
+                </button>
+            </div>
         </div>
       )}
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">For text, minimum 20 characters. For PDF, only the first page is analyzed. No personal data is saved.</p>
+
+      {isPdfUploaded && (
+        <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-md flex justify-between items-center text-sm">
+            <p className="text-green-800 dark:text-green-200 font-medium">Ready: <span className="font-normal">{uploadedPdfName} (Page {selectedPdfPage})</span></p>
+            <button onClick={handleClearPdf} className="text-green-600 dark:text-green-300 hover:text-green-800 dark:hover:text-green-100" aria-label="Clear uploaded PDF"><XIcon className="w-5 h-5"/></button>
+        </div>
+      )}
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">For text, minimum 20 characters. For PDF, select a page to analyze. No personal data is saved.</p>
       
       <div className="mt-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div data-tour-id="input-buttons" className="flex items-center flex-wrap gap-2">
              <button
                 onClick={isRecording ? handleStopRecording : handleStartRecording}
-                disabled={isInteractionDisabled || !isAudioApiSupported || isPdfUploaded}
+                disabled={isInteractionDisabled || !isAudioApiSupported || !!pdfDoc}
                 className={`px-4 py-2 text-sm font-medium border rounded-md flex items-center justify-center transition-colors ${isRecording ? 'text-red-700 bg-red-100 border-red-300 hover:bg-red-200 dark:text-red-300 dark:bg-red-900/50 dark:border-red-700 dark:hover:bg-red-900' : 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100 dark:text-blue-300 dark:bg-blue-900/50 dark:border-blue-700 dark:hover:bg-blue-900'} disabled:opacity-50 disabled:cursor-not-allowed`}
                 title={isOffline ? "Unavailable offline" : !isAudioApiSupported ? "Audio recording not supported in your browser" : (isRecording ? "Stop Recording" : "Start Recording")}
             >
@@ -259,9 +322,9 @@ const InputCard: React.FC<InputCardProps> = ({
                 onClick={handleUploadClick}
                 disabled={isInteractionDisabled}
                 className="px-4 py-2 text-sm font-medium border rounded-md flex items-center justify-center transition-colors text-gray-700 bg-white border-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:bg-gray-700 dark:border-gray-500 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={isOffline ? "Unavailable offline" : "Upload PDF (vision-based analysis)"}
+                title={isOffline ? "Unavailable offline" : "Upload PDF"}
             >
-                {isPdfLoading ? 'Analyzing...' : <><UploadIcon className="w-4 h-4 mr-2" /> Upload PDF</>}
+                {isPdfLoading ? 'Loading...' : <><UploadIcon className="w-4 h-4 mr-2" /> Upload PDF</>}
             </button>
         </div>
         <button
@@ -270,7 +333,7 @@ const InputCard: React.FC<InputCardProps> = ({
           disabled={isGenerateButtonDisabled}
           className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:bg-gray-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:scale-100 order-first sm:order-last"
         >
-          {isOffline ? 'Currently Offline' : (isLoading || isProcessingAudio || isPdfLoading) ? (
+          {isOffline ? 'Currently Offline' : (isLoading || isProcessingAudio || isPdfLoading || isAnalyzingPage) ? (
             <>
               <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
