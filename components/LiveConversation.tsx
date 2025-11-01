@@ -1,8 +1,9 @@
 
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { LiveSession, Modality, Blob, LiveServerMessage } from '@google/genai';
+import { Modality, Blob, LiveServerMessage } from '@google/genai';
 import { ChatMessage } from '../types';
-import { ai } from '../services/geminiService';
+import { connectLiveSession } from '../services/geminiService';
 import { MicrophoneIcon, StopIcon, SparklesIcon } from './icons';
 import { mockLiveTranscript } from '../data/mockChatData';
 
@@ -50,6 +51,8 @@ async function decodeAudioData(
 interface LiveConversationProps {
     isDemoActive: boolean;
 }
+
+type LiveSession = Awaited<ReturnType<typeof connectLiveSession>>;
 
 const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive }) => {
     const [transcript, setTranscript] = useState<ChatMessage[]>([]);
@@ -111,89 +114,79 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive }) => 
             let nextStartTime = 0;
             const sources = new Set<AudioBufferSourceNode>();
 
-            const sessionPromise = ai.live.connect({
-                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-                config: {
-                    responseModalities: [Modality.AUDIO],
-                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-                    systemInstruction: 'You are a helpful assistant for patients. Keep your answers concise and easy to understand. Do not provide medical advice.',
-                    inputAudioTranscription: {},
-                    outputAudioTranscription: {},
-                },
-                callbacks: {
-                    onopen: async () => {
-                        // FIX: Cast window to any to support vendor-prefixed webkitAudioContext
-                        const inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        const source = inputAudioContext.createMediaStreamSource(stream);
-                        const scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
-                        
-                        scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
-                            const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                            const pcmBlob: Blob = {
-                                data: encode(new Uint8Array(new Int16Array(inputData.map(f => f * 32768)).buffer)),
-                                mimeType: 'audio/pcm;rate=16000',
-                            };
-                            sessionPromise.then(session => session.sendRealtimeInput({ media: pcmBlob }));
+            const sessionPromise = connectLiveSession({
+                onopen: async () => {
+                    // FIX: Cast window to any to support vendor-prefixed webkitAudioContext
+                    const inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const source = inputAudioContext.createMediaStreamSource(stream);
+                    const scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
+                    
+                    scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
+                        const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                        const pcmBlob: Blob = {
+                            data: encode(new Uint8Array(new Int16Array(inputData.map(f => f * 32768)).buffer)),
+                            mimeType: 'audio/pcm;rate=16000',
                         };
-                        source.connect(scriptProcessor);
-                        scriptProcessor.connect(inputAudioContext.destination);
+                        sessionPromise.then(session => session.sendRealtimeInput({ media: pcmBlob }));
+                    };
+                    source.connect(scriptProcessor);
+                    scriptProcessor.connect(inputAudioContext.destination);
 
-                        audioInfrastructureRef.current = { inputAudioContext, outputAudioContext, processor: scriptProcessor, stream };
-                        setIsConnecting(false);
-                        setIsLive(true);
-                    },
-                    onmessage: async (message: LiveServerMessage) => {
-                        // Handle transcriptions
-                        if (message.serverContent?.inputTranscription) {
-                            currentInputTranscriptionRef.current += message.serverContent.inputTranscription.text;
-                        }
-                        if (message.serverContent?.outputTranscription) {
-                           currentOutputTranscriptionRef.current += message.serverContent.outputTranscription.text;
-                        }
-                        if (message.serverContent?.turnComplete) {
-                            const fullInput = currentInputTranscriptionRef.current.trim();
-                            const fullOutput = currentOutputTranscriptionRef.current.trim();
-                            
-                            setTranscript(prev => {
-                                let newTranscript = [...prev];
-                                if (fullInput) newTranscript.push({ role: 'user', text: fullInput });
-                                if (fullOutput) newTranscript.push({ role: 'model', text: fullOutput });
-                                return newTranscript;
-                            });
-
-                            currentInputTranscriptionRef.current = '';
-                            currentOutputTranscriptionRef.current = '';
-                        }
+                    audioInfrastructureRef.current = { inputAudioContext, outputAudioContext, processor: scriptProcessor, stream };
+                    setIsConnecting(false);
+                    setIsLive(true);
+                },
+                onmessage: async (message: LiveServerMessage) => {
+                    // Handle transcriptions
+                    if (message.serverContent?.inputTranscription) {
+                        currentInputTranscriptionRef.current += message.serverContent.inputTranscription.text;
+                    }
+                    if (message.serverContent?.outputTranscription) {
+                       currentOutputTranscriptionRef.current += message.serverContent.outputTranscription.text;
+                    }
+                    if (message.serverContent?.turnComplete) {
+                        const fullInput = currentInputTranscriptionRef.current.trim();
+                        const fullOutput = currentOutputTranscriptionRef.current.trim();
                         
-                        // Handle audio playback
-                        const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData.data;
-                        if (base64Audio) {
-                            nextStartTime = Math.max(nextStartTime, outputAudioContext.currentTime);
-                            const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContext, 24000, 1);
-                            const source = outputAudioContext.createBufferSource();
-                            source.buffer = audioBuffer;
-                            source.connect(outputAudioContext.destination);
-                            source.addEventListener('ended', () => sources.delete(source));
-                            source.start(nextStartTime);
-                            nextStartTime += audioBuffer.duration;
-                            sources.add(source);
-                        }
-                        if (message.serverContent?.interrupted) {
-                            sources.forEach(source => source.stop());
-                            sources.clear();
-                            nextStartTime = 0;
-                        }
-                    },
-                    onerror: (e) => {
-                        console.error("Live session error:", e);
-                        alert("A connection error occurred. The session will now close.");
-                        stopSession();
-                    },
-                    onclose: () => {
-                        // console.log("Live session closed.");
-                    },
-                }
+                        setTranscript(prev => {
+                            let newTranscript = [...prev];
+                            if (fullInput) newTranscript.push({ role: 'user', text: fullInput });
+                            if (fullOutput) newTranscript.push({ role: 'model', text: fullOutput });
+                            return newTranscript;
+                        });
+
+                        currentInputTranscriptionRef.current = '';
+                        currentOutputTranscriptionRef.current = '';
+                    }
+                    
+                    // Handle audio playback
+                    const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
+                    if (base64Audio) {
+                        nextStartTime = Math.max(nextStartTime, outputAudioContext.currentTime);
+                        const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContext, 24000, 1);
+                        const source = outputAudioContext.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(outputAudioContext.destination);
+                        source.addEventListener('ended', () => sources.delete(source));
+                        source.start(nextStartTime);
+                        nextStartTime += audioBuffer.duration;
+                        sources.add(source);
+                    }
+                    if (message.serverContent?.interrupted) {
+                        sources.forEach(source => source.stop());
+                        sources.clear();
+                        nextStartTime = 0;
+                    }
+                },
+                onerror: (e) => {
+                    console.error("Live session error:", e);
+                    alert("A connection error occurred. The session will now close.");
+                    stopSession();
+                },
+                onclose: () => {
+                    // console.log("Live session closed.");
+                },
             });
             sessionRef.current = await sessionPromise;
         } catch (error) {
@@ -210,14 +203,14 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive }) => 
     const displayTranscript = isDemoActive ? mockLiveTranscript : transcript;
 
     return (
-        <div data-tour-id="live-qa-content" className="bg-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 flex flex-col h-[65vh] sm:h-[70vh] max-h-[700px]">
-            <div className="flex justify-between items-center mb-4 border-b pb-3">
-                 <h2 className="text-xl font-semibold text-gray-800">Live Q&A</h2>
+        <div data-tour-id="live-qa-content" className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex flex-col h-[65vh] sm:h-[70vh] max-h-[700px]">
+            <div className="flex justify-between items-center mb-4 border-b dark:border-gray-700 pb-3">
+                 <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Live Q&A</h2>
                  <button
                     onClick={isLive || isConnecting ? stopSession : startSession}
                     disabled={!isApiSupported || isDemoActive}
                     title={!isApiSupported ? "Your browser does not support the necessary APIs for this feature." : (isLive ? "End Session" : "Start Live Q&A")}
-                    className={`px-4 py-2 text-sm font-medium border rounded-md flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isLive ? 'text-red-700 bg-red-100 border-red-300 hover:bg-red-200' : 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100'}`}
+                    className={`px-4 py-2 text-sm font-medium border rounded-md flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isLive || isConnecting ? 'text-red-700 bg-red-100 border-red-300 hover:bg-red-200 dark:text-red-300 dark:bg-red-900/50 dark:border-red-700 dark:hover:bg-red-900' : 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100 dark:text-blue-300 dark:bg-blue-900/50 dark:border-blue-700 dark:hover:bg-blue-900'}`}
                  >
                      {isConnecting ? (
                          <>
@@ -233,7 +226,7 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive }) => 
             </div>
             <div ref={transcriptContainerRef} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
                  {!isLive && displayTranscript.length === 0 && !isDemoActive && (
-                    <div className="text-center text-gray-500 pt-10">
+                    <div className="text-center text-gray-500 dark:text-gray-400 pt-10">
                          {!isApiSupported ? (
                             <p>Sorry, your browser doesn't support the required features for live conversations.</p>
                         ) : (
@@ -244,13 +237,13 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive }) => 
                 {displayTranscript.map((msg, index) => (
                     <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                         {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5"/></div>}
-                        <div className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
+                        <div className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
                            <p className="text-sm">{msg.text}</p>
                         </div>
                     </div>
                 ))}
                  {isLive && transcript.length === 0 && (
-                    <div className="text-center text-gray-500 pt-10">
+                    <div className="text-center text-gray-500 dark:text-gray-400 pt-10">
                         <p className="flex items-center justify-center"><span className="relative flex h-3 w-3 mr-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span> Listening... Ask me a question.</p>
                     </div>
                 )}

@@ -1,15 +1,79 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF--8" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#2563eb"/>
     <link rel="manifest" href="/manifest.json" />
     <title>Teach-Back Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Configure Tailwind to use class-based dark mode.
+      // This script must run after the main Tailwind script is loaded.
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
     <!-- React Joyride styles -->
     <link rel="stylesheet" href="https://unpkg.com/react-joyride/dist/react-joyride.css">
+    <script>
+      // Prevents Flash of Incorrect Theme by applying the saved theme before the page loads.
+      (function() {
+        const theme = localStorage.getItem('teachback-theme');
+        // If 'dark' is saved, or if no theme is saved but user prefers dark, apply the dark class.
+        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+    <style>
+      /* --- React Joyride Button Visibility Fix --- */
+      /* This style block ensures the tutorial navigation buttons are always visible,
+         overcoming potential conflicts with other CSS frameworks like Tailwind. */
+      .react-joyride__tooltip button {
+        visibility: visible !important;
+        opacity: 1 !important;
+        cursor: pointer !important;
+      }
+      .react-joyride__button--primary { /* Next / Done */
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+        border-radius: 6px !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        padding: 8px 16px !important;
+        border: none !important;
+      }
+      .react-joyride__button--secondary { /* Back */
+        color: #475569 !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        margin-right: auto !important;
+        background-color: transparent !important;
+        border: none !important;
+        padding: 8px 0 !important;
+      }
+      .react-joyride__button--close { /* The 'X' button */
+        color: #64748b !important;
+        position: absolute !important;
+        top: 10px !important;
+        right: 10px !important;
+        padding: 5px !important;
+        background: transparent !important;
+        border: none !important;
+        width: 24px !important;
+        height: 24px !important;
+      }
+       .react-joyride__button--skip {
+         color: #475569 !important;
+         font-size: 14px !important;
+         font-weight: 500 !important;
+         text-decoration: none !important;
+         background: transparent !important;
+         border: none !important;
+       }
+      /* --- End of Fix --- */
+    </style>
     <style>
       @media print {
         body * {
@@ -45,7 +109,7 @@
   <!-- React Joyride script -->
   <script src="https://unpkg.com/react-joyride/dist/react-joyride.min.js"></script>
 </head>
-  <body class="bg-gray-50 text-gray-800">
+  <body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

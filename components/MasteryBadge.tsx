@@ -1,4 +1,5 @@
 
+
 import React, { useEffect } from 'react';
 import { DownloadIcon } from './icons';
 
@@ -12,6 +13,10 @@ const MasteryBadge: React.FC<MasteryBadgeProps> = ({ onDownload }) => {
     const confettiCount = 100;
     const container = document.getElementById('mastery-badge-container');
     if (container) {
+       // Clear any old confetti before adding new ones
+      const oldConfetti = container.querySelectorAll('.confetti');
+      oldConfetti.forEach(c => c.remove());
+
       for (let i = 0; i < confettiCount; i++) {
         const confetti = document.createElement('div');
         confetti.className = 'confetti';
@@ -26,7 +31,8 @@ const MasteryBadge: React.FC<MasteryBadgeProps> = ({ onDownload }) => {
     // Cleanup confetti
     const timer = setTimeout(() => {
       if (container) {
-        container.innerHTML = ''; // Clear children
+        const confettiElements = container.querySelectorAll('.confetti');
+        confettiElements.forEach(el => el.remove());
       }
     }, 5000);
     
@@ -43,13 +49,13 @@ const MasteryBadge: React.FC<MasteryBadgeProps> = ({ onDownload }) => {
           100% { transform: translateY(150px) rotate(720deg); opacity: 0; }
         }
       `}</style>
-      <div id="mastery-badge-container" data-tour-id="mastery-badge" className="confetti-container bg-green-100 border-l-4 border-green-500 text-green-700 p-6 rounded-lg shadow-md text-center">
+      <div id="mastery-badge-container" data-tour-id="mastery-badge" className="confetti-container bg-green-100 dark:bg-green-900/30 border-l-4 border-green-500 dark:border-green-600 text-green-700 dark:text-green-200 p-6 rounded-lg shadow-md text-center">
         <h2 className="text-2xl font-bold">Mastered!</h2>
         <p className="mt-2">Great job! You've correctly answered all the questions.</p>
-        <div className="mt-4">
+        <div className="mt-4 flex flex-col sm:flex-row sm:justify-center sm:items-center gap-3">
           <button
             onClick={onDownload}
-            className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            className="inline-flex items-center justify-center px-5 py-2.5 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-offset-gray-800"
           >
             <DownloadIcon className="w-5 h-5 mr-2" />
             Download Summary

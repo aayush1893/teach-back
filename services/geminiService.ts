@@ -1,82 +1,165 @@
+import { GoogleGenAI, Type, Modality, Chat, LiveSession } from "@google/genai";
+import { TeachBackData, Language, LANGUAGE_VOICE_MAP, Context, ClassificationResult } from '../types';
 
-import { GoogleGenAI, Type, Modality } from "@google/genai";
-import { TeachBackData, Language, LANGUAGE_VOICE_MAP } from '../types';
-
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-  throw new Error("API_KEY environment variable not set");
+export interface ImagePart {
+  inlineData: {
+    data: string; // base64 encoded string
+    mimeType: 'image/png' | 'image/jpeg';
+  };
 }
 
-export const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-const responseSchema = {
+// --- Stage 1: Classifier ---
+
+const classifierSchema = {
   type: Type.OBJECT,
   properties: {
-    simplified_text: { type: Type.STRING, description: "The simplified version of the medical text." },
-    reading_grade: { type: Type.INTEGER, description: "Estimated reading grade level (5-12) of the simplified text." },
-    qa: {
+    context: {
+      type: Type.STRING,
+      enum: ["prescription", "eob", "prior_auth", "discharge", "lab", "unknown"],
+    },
+    confidence: { type: Type.NUMBER, minimum: 0, maximum: 1 },
+    top_k: {
       type: Type.ARRAY,
-      description: "An array of 3-5 quiz questions.",
       items: {
         type: Type.OBJECT,
         properties: {
-          q: { type: Type.STRING, description: "The quiz question." },
-          a_correct: { type: Type.STRING, description: "The single correct answer." },
-          a_distractors: {
-            type: Type.ARRAY,
-            description: "An array of 2-3 incorrect answer choices (distractors).",
-            items: { type: Type.STRING },
+          label: {
+            type: Type.STRING,
+            enum: ["prescription", "eob", "prior_auth", "discharge", "lab"],
           },
-          rationale_correct: { type: Type.STRING, description: "Explanation for why the correct answer is right." },
-          rationale_incorrect: { type: Type.STRING, description: "Explanation for why the other choices are wrong." },
+          score: { type: Type.NUMBER, minimum: 0, maximum: 1 },
         },
-        required: ["q", "a_correct", "a_distractors", "rationale_correct", "rationale_incorrect"]
-      }
+        required: ["label", "score"],
+      },
+      minItems: 0,
+      maxItems: 3,
+    },
+    unknown_reasons: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+    },
+  },
+  required: ["context", "confidence", "top_k", "unknown_reasons"],
+};
+
+const classifierSystemInstruction = `You are a medical document classifier. Your task is to analyze the user's text or document image and classify it into one of the following categories: prescription, eob, prior_auth, discharge, lab, or unknown.
+- You must classify ONLY into the provided set of categories.
+- Abstain by returning 'unknown' if your confidence is less than 0.6 or if the text/image lacks clear, unambiguous cues for a specific category.
+- Provide up to 3 alternative categories in 'top_k' with their scores.
+- If the context is 'unknown', provide brief reasons in 'unknown_reasons'.
+- Do not invent details. Your entire output must be a single, valid JSON object that strictly adheres to the provided schema.
+
+Negative Examples (for your reference):
+- A gym membership invoice is NOT an EOB (Explanation of Benefits).
+- General wellness blogs or academic articles are 'unknown'.
+- A generic appointment reminder is 'unknown' unless it explicitly mentions discharge instructions, medication refills (prescription), or prior authorizations.`;
+
+export const classifyText = async (inputText: string, imagePart?: ImagePart): Promise<ClassificationResult> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    const contents = imagePart
+        ? { parts: [imagePart, { text: "Please classify the document in the image." }] }
+        : `Please classify the following text:\n\n---\n${inputText}\n---`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: contents,
+            config: {
+                systemInstruction: classifierSystemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: classifierSchema,
+                temperature: 0.1,
+            },
+        });
+        const data = JSON.parse(response.text.trim());
+        return data as ClassificationResult;
+    } catch (error) {
+        console.error("Gemini classification failed:", error);
+        throw new Error("Failed to classify the provided text.");
+    }
+};
+
+
+// --- Stage 2: Generator ---
+
+const generatorResponseSchema = {
+  type: Type.OBJECT,
+  properties: {
+    context: { type: Type.STRING, enum: ["prescription", "eob", "prior_auth", "discharge", "lab", "unknown"] },
+    simplified_text: { type: Type.STRING },
+    reading_grade_after: { type: Type.INTEGER, minimum: 5, maximum: 12 },
+    qa: {
+      type: Type.ARRAY,
+      minItems: 3,
+      maxItems: 5,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          q: { type: Type.STRING },
+          a_correct: { type: Type.STRING },
+          a_distractors: { type: Type.ARRAY, items: { type: Type.STRING }, minItems: 2, maxItems: 3 },
+          concept_tag: { type: Type.STRING },
+          rationale_correct: { type: Type.STRING },
+          rationale_incorrect: { type: Type.STRING },
+        },
+        required: ["q", "a_correct", "a_distractors", "concept_tag", "rationale_correct", "rationale_incorrect"],
+      },
     },
     remediation: {
       type: Type.OBJECT,
-      description: "Guidance for users who answer incorrectly.",
       properties: {
-        if_wrong: { type: Type.STRING, description: "A general re-teaching statement." },
-        examples: {
-          type: Type.ARRAY,
-          description: "One or two concrete examples to clarify the concept.",
-          items: { type: Type.STRING }
-        }
+        if_wrong: { type: Type.STRING },
+        examples: { type: Type.ARRAY, items: { type: Type.STRING } },
       },
-      required: ["if_wrong", "examples"]
+      required: ["if_wrong", "examples"],
     },
     safety_flags: {
       type: Type.OBJECT,
-      description: "Identified safety concerns from the text.",
       properties: {
-        urgent_contact: { type: Type.BOOLEAN, description: "True if the text suggests urgent medical contact is needed." },
-        contraindication_mentioned: { type: Type.BOOLEAN, description: "True if any contraindications are mentioned." },
-        red_flags: {
-          type: Type.ARRAY,
-          description: "A list of specific red-flag words or phrases found.",
-          items: { type: Type.STRING }
-        }
+        urgent_contact: { type: Type.BOOLEAN },
+        contraindication_mentioned: { type: Type.BOOLEAN },
+        red_flags: { type: Type.ARRAY, items: { type: Type.STRING } },
       },
-      required: ["urgent_contact", "contraindication_mentioned", "red_flags"]
-    }
+      required: ["urgent_contact", "contraindication_mentioned", "red_flags"],
+    },
+    domain: {
+      type: Type.OBJECT,
+      properties: {
+        prescription: { type: Type.OBJECT, properties: { dose: { type: Type.STRING }, route: { type: Type.STRING }, frequency: { type: Type.STRING }, timing: { type: Type.STRING }, missed_dose_instructions: { type: Type.STRING }, common_side_effects: { type: Type.ARRAY, items: { type: Type.STRING } }, interaction_warnings: { type: Type.ARRAY, items: { type: Type.STRING } } } },
+        eob: { type: Type.OBJECT, properties: { claim_id: { type: Type.STRING }, service_date: { type: Type.STRING }, billed: { type: Type.STRING }, allowed: { type: Type.STRING }, deductible: { type: Type.STRING }, copay: { type: Type.STRING }, coinsurance: { type: Type.STRING }, not_covered_reason: { type: Type.STRING }, appeal_window_days: { type: Type.INTEGER }, next_steps: { type: Type.ARRAY, items: { type: Type.STRING } } } },
+        prior_auth: { type: Type.OBJECT, properties: { status: { type: Type.STRING }, missing_items: { type: Type.ARRAY, items: { type: Type.STRING } }, clinical_criteria: { type: Type.ARRAY, items: { type: Type.STRING } }, deadline: { type: Type.STRING }, checklist: { type: Type.ARRAY, items: { type: Type.STRING } }, template_addendum: { type: Type.STRING } } },
+        discharge: { type: Type.OBJECT, properties: { followups: { type: Type.ARRAY, items: { type: Type.STRING } }, med_changes: { type: Type.ARRAY, items: { type: Type.STRING } }, when_to_call: { type: Type.ARRAY, items: { type: Type.STRING } }, activity_restrictions: { type: Type.ARRAY, items: { type: Type.STRING } } } },
+        lab: { type: Type.OBJECT, properties: { test: { type: Type.STRING }, value: { type: Type.STRING }, unit: { type: Type.STRING }, reference_range: { type: Type.STRING }, interpretation: { type: Type.STRING }, next_steps: { type: Type.ARRAY, items: { type: Type.STRING } } } },
+        unknown: { type: Type.OBJECT, properties: { key_points: { type: Type.ARRAY, items: { type: Type.STRING } }, action_checklist: { type: Type.ARRAY, items: { type: Type.STRING } }, questions_to_ask_provider: { type: Type.ARRAY, items: { type: Type.STRING } } } },
+      },
+    },
   },
-  required: ["simplified_text", "reading_grade", "qa", "remediation", "safety_flags"]
+  required: ["context", "simplified_text", "reading_grade_after", "qa", "remediation", "safety_flags", "domain"],
 };
 
-const systemInstruction = `You are the Teach-Back Engine. Your goal is to turn complex medical instructions into clear, simple language that a patient can easily understand and act on.
-- Use clear, culturally sensitive language appropriate for a 6th–8th-grade reading level.
-- NEVER invent clinical facts or information not present in the provided text. If a detail is ambiguous or missing, state that you cannot confirm it.
-- Your entire output MUST be a single, valid JSON object that strictly adheres to the provided schema. Do not add any extra text or formatting outside of the JSON structure.
-- Identify and highlight any "red-flag" phrases like "chest pain," "trouble breathing," "severe headache," etc., in the safety_flags.
-- Create a quiz that tests the most critical actions or concepts the user needs to know.
-- The remediation content should directly address common misunderstandings related to the quiz questions.`;
-
-const getTeachBackData = async (inputText: string, retry: boolean = false): Promise<TeachBackData> => {
-  let userPrompt = `Please process the following medical instructions:\n\n---\n${inputText}\n---`;
-  if (retry) {
-    userPrompt += "\n\nThe previous attempt failed to produce valid JSON. Please ensure your output is a single, valid JSON object matching the schema, with no additional text or explanations."
+const getGeneratorData = async (inputText: string, context: Context, imagePart?: ImagePart, retry: boolean = false): Promise<TeachBackData> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const systemInstruction = `You are the Teach-Back Engine. Your goal is to turn complex text into clear, simple language that a patient can easily understand and act on. You have been told the document context is '${context}'.
+- Simplify the text to a 6th–8th-grade reading level, preserving the original language (e.g., simplify Spanish text into simpler Spanish).
+- NEVER invent clinical facts or information not present in the provided text or image.
+- Populate ONLY the domain object that matches the provided context ('${context}'). If the context is 'unknown', you MUST populate the 'unknown' domain object and leave all others empty.
+- Your entire output MUST be a single, valid JSON object that strictly adheres to the provided schema. Do not add any extra text or formatting.
+- Create a quiz that tests the most critical actions or concepts. The quiz MUST cover all crucial information, including specific dosages, frequencies, urgent warning signs, and key follow-up actions/dates. Do not miss any critical details.`;
+  
+  let userPrompt;
+  if (imagePart) {
+      let textPart = `The document context is '${context}'. Please process the document provided in the image.`;
+      if (retry) {
+          textPart += "\n\nThe previous attempt failed. Return valid JSON that exactly matches the schema. No commentary.";
+      }
+      userPrompt = { parts: [imagePart, { text: textPart }] };
+  } else {
+      userPrompt = `The document context is '${context}'. Please process the following text:\n\n---\n${inputText}\n---`;
+      if (retry) {
+          userPrompt += "\n\nThe previous attempt failed. Return valid JSON that exactly matches the schema. No commentary.";
+      }
   }
 
   try {
@@ -86,7 +169,7 @@ const getTeachBackData = async (inputText: string, retry: boolean = false): Prom
       config: {
         systemInstruction,
         responseMimeType: "application/json",
-        responseSchema: responseSchema,
+        responseSchema: generatorResponseSchema,
         temperature: 0.5,
       },
     });
@@ -98,65 +181,26 @@ const getTeachBackData = async (inputText: string, retry: boolean = false): Prom
     const data = JSON.parse(jsonText);
     return data as TeachBackData;
   } catch (error) {
-    console.error("Gemini API call failed:", error);
+    console.error("Gemini generator call failed:", error);
     if (!retry) {
-      console.log("Retrying API call once...");
-      return getTeachBackData(inputText, true);
+      console.log("Retrying generator call once...");
+      return getGeneratorData(inputText, context, imagePart, true);
     }
     throw new Error("Failed to generate and parse teach-back data after retry.");
   }
 };
 
-
-export const generateTeachBack = async (inputText: string): Promise<TeachBackData> => {
-    return getTeachBackData(inputText);
+export const generateStructuredData = async (inputText: string, context: Context, imagePart?: ImagePart): Promise<TeachBackData> => {
+    return getGeneratorData(inputText, context, imagePart);
 };
 
-// --- Video Generation Service ---
-export const generateTutorialVideo = async (): Promise<string> => {
-  // A new instance is created to ensure the latest API key from the selection dialog is used.
-  const aiForVideo = new GoogleGenAI({ apiKey: API_KEY });
+// --- Audio Services ---
 
-  let operation = await aiForVideo.models.generateVideos({
-    model: 'veo-3.1-fast-generate-preview',
-    prompt: `A professional, animated tutorial video for a web application called 'Teach-Back Engine'. The video should be about 15 seconds long.
-      - Start with the app's logo and title.
-      - Show a user pasting medical text into an input box on a clean, modern UI (blue and white theme).
-      - Animate the text transforming into a simplified version.
-      - Briefly show a multiple-choice quiz about the text.
-      - Show a "Mastered!" badge with confetti.
-      - The animation should be smooth and professional, suitable for a product demo.`,
-    config: {
-      numberOfVideos: 1,
-      resolution: '720p',
-      aspectRatio: '16:9'
-    }
-  });
-
-  while (!operation.done) {
-    // Poll every 10 seconds
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    operation = await aiForVideo.operations.getVideosOperation({ operation: operation });
-  }
-
-  const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-  if (!downloadLink) {
-    throw new Error("Video generation completed, but no download link was found.");
-  }
-  // The API key is appended for authentication when fetching the video blob
-  return `${downloadLink}&key=${API_KEY}`;
-};
-
-
-// New Service Functions
-
-// Helper to convert Blob to Base64
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64data = reader.result as string;
-      // remove the data url prefix
       resolve(base64data.split(',')[1]);
     };
     reader.onerror = reject;
@@ -170,6 +214,7 @@ export const transcribeAndTranslateAudio = async (
   targetLang: Language,
   targetLangName: string
 ): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const base64Audio = await blobToBase64(audioBlob);
     const audioPart = {
@@ -179,7 +224,6 @@ export const transcribeAndTranslateAudio = async (
       },
     };
 
-    // Step 1: Transcribe the audio
     const transcribeResponse = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: {
@@ -195,7 +239,6 @@ export const transcribeAndTranslateAudio = async (
         throw new Error("Transcription failed or returned empty text.");
     }
 
-    // Step 2: Translate the transcribed text
     const translateResponse = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: `Translate the following text to ${targetLangName}:\n\n---\n${transcribedText}\n---`,
@@ -219,6 +262,7 @@ const decode = (base64: string) => {
 };
 
 export const synthesizeSpeech = async (text: string, lang: Language): Promise<AudioBuffer> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
@@ -241,7 +285,6 @@ export const synthesizeSpeech = async (text: string, lang: Language): Promise<Au
     const audioData = decode(base64Audio);
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     
-    // Manual decoding for raw PCM data
     const dataInt16 = new Int16Array(audioData.buffer);
     const frameCount = dataInt16.length;
     const buffer = audioContext.createBuffer(1, frameCount, 24000);
@@ -256,4 +299,32 @@ export const synthesizeSpeech = async (text: string, lang: Language): Promise<Au
     console.error("Speech synthesis failed:", error);
     throw new Error("Failed to generate audio for the translated text.");
   }
+};
+
+// --- Exports for Chat & Live ---
+
+export const createChatSession = (): Chat => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const systemInstruction = `You are a helpful assistant for patients. Your goal is to explain medical concepts and terminology in simple, easy-to-understand language.
+When a user asks for a definition of a medical term (e.g., "what is X?", "define X"), you MUST respond with ONLY a valid JSON object with this exact structure: {"isDefinition": true, "term": "the_term_being_defined", "definition": "a_concise_and_simple_definition"}.
+For all other questions, respond conversationally as plain text. Do not provide medical advice.`;
+    return ai.chats.create({
+        model: 'gemini-2.5-flash',
+        config: { systemInstruction },
+    });
+};
+
+export const connectLiveSession = (callbacks: any): Promise<LiveSession> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    return ai.live.connect({
+        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+        config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
+            systemInstruction: 'You are a helpful assistant for patients. Keep your answers concise and easy to understand. Do not provide medical advice.',
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+        },
+        callbacks,
+    });
 };

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { QAItem, Remediation, UserAnswers, QuizState } from '../types';
 import { CheckIcon, XIcon } from './icons';
@@ -39,11 +40,11 @@ const QuizCard: React.FC<QuizCardProps> = ({ qaItems, remediation, quizState, us
   const hasIncorrectAnswers = quizState === QuizState.Submitted && qaItems.some((_, i) => isWrongAnswer(i));
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200" data-tour-id="quiz-card">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700" data-tour-id="quiz-card">
       <h2 className="text-xl font-semibold mb-4">2. Quick Quiz</h2>
       <div className="space-y-6">
         {qaItems.map((item, qIndex) => (
-          <div key={qIndex} className={`p-4 rounded-lg border ${isCorrectAnswer(qIndex) ? 'border-green-300 bg-green-50' : ''} ${isWrongAnswer(qIndex) ? 'border-red-300 bg-red-50' : ''}`}>
+          <div key={qIndex} className={`p-4 rounded-lg border ${isCorrectAnswer(qIndex) ? 'border-green-300 bg-green-50 dark:bg-green-900/30 dark:border-green-700' : ''} ${isWrongAnswer(qIndex) ? 'border-red-300 bg-red-50 dark:bg-red-900/30 dark:border-red-700' : 'dark:border-gray-600'}`}>
             <p className="font-semibold mb-3">{qIndex + 1}. {item.q}</p>
             <fieldset className="space-y-2">
               <legend className="sr-only">Answers for question {qIndex+1}</legend>
@@ -61,9 +62,9 @@ const QuizCard: React.FC<QuizCardProps> = ({ qaItems, remediation, quizState, us
                       checked={isChecked}
                       onChange={(e) => onAnswerChange(qIndex, e.target.value)}
                       disabled={quizState === QuizState.Submitted || quizState === QuizState.Mastered}
-                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-50"
+                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-50 dark:bg-gray-700 dark:border-gray-600"
                     />
-                    <label htmlFor={`q${qIndex}o${oIndex}`} className={`ml-3 block text-sm text-gray-700 ${quizState === QuizState.Submitted && isCorrectOption ? 'font-bold text-green-700' : ''} ${quizState === QuizState.Submitted && isChecked && !isCorrectOption ? 'font-bold text-red-700' : ''}`}>
+                    <label htmlFor={`q${qIndex}o${oIndex}`} className={`ml-3 block text-sm text-gray-700 dark:text-gray-300 ${quizState === QuizState.Submitted && isCorrectOption ? 'font-bold text-green-700 dark:text-green-400' : ''} ${quizState === QuizState.Submitted && isChecked && !isCorrectOption ? 'font-bold text-red-700 dark:text-red-400' : ''}`}>
                       {option}
                       {quizState === QuizState.Submitted && isCorrectOption && <CheckIcon className="inline w-4 h-4 ml-1 text-green-600" />}
                       {quizState === QuizState.Submitted && isChecked && !isCorrectOption && <XIcon className="inline w-4 h-4 ml-1 text-red-600" />}
@@ -73,7 +74,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ qaItems, remediation, quizState, us
               })}
             </fieldset>
             {quizState === QuizState.Submitted && (
-                 <div className="mt-3 text-sm p-3 rounded-md bg-gray-100">
+                 <div className="mt-3 text-sm p-3 rounded-md bg-gray-100 dark:bg-gray-700/50">
                     <p><strong>Why:</strong> {isCorrectAnswer(qIndex) ? item.rationale_correct : item.rationale_incorrect}</p>
                 </div>
             )}
@@ -86,7 +87,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ qaItems, remediation, quizState, us
              <button
                onClick={onSubmit}
                disabled={isSubmitDisabled || quizState === QuizState.Submitted}
-               className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+               className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed"
              >
                Submit Answers
              </button>
@@ -94,10 +95,10 @@ const QuizCard: React.FC<QuizCardProps> = ({ qaItems, remediation, quizState, us
       )}
 
       {hasIncorrectAnswers && (
-        <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400">
-          <h3 className="text-lg font-semibold text-yellow-800">Let's Explain Again</h3>
-          <p className="mt-2 text-yellow-700">{remediation.if_wrong}</p>
-          <ul className="mt-2 list-disc list-inside text-yellow-700 space-y-1">
+        <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-600">
+          <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">Let's Explain Again</h3>
+          <p className="mt-2 text-yellow-700 dark:text-yellow-300">{remediation.if_wrong}</p>
+          <ul className="mt-2 list-disc list-inside text-yellow-700 dark:text-yellow-300 space-y-1">
             {remediation.examples.map((ex, i) => <li key={i}>{ex}</li>)}
           </ul>
           <div className="mt-4">

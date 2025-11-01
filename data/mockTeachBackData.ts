@@ -1,4 +1,3 @@
-
 import { TeachBackData } from '../types';
 
 export const sampleInputText = `
@@ -19,8 +18,9 @@ Warning Signs:
 `;
 
 export const mockTeachBackData: TeachBackData = {
+  context: 'discharge',
   simplified_text: "Here is a simpler way to understand your instructions for Atrial Fibrillation.\n\n**Your Medicines:**\n\n*   **Eliquis (apixaban) 5 mg:** Take one pill two times every day. This is a blood thinner that helps prevent strokes. It is very important that you do not stop taking this medicine unless your heart doctor tells you to.\n*   **Metoprolol Succinate ER 50 mg:** Take one pill one time every day. This medicine helps keep your heart from beating too fast.\n\n**Next Steps:**\n\n*   You need to see your heart doctor, Dr. Smith, in about one month.\n*   You also need to get some blood tests done in two weeks. These are called a BMP and a CBC.\n\n**When to Get Help Right Away:**\n\nYou must get help immediately if you see signs of serious bleeding. This includes:\n\n*   Your stool is red or looks like black tar.\n*   You have a very bad headache.\n*   You cough up blood.\n\nAlso, please call the doctor's office if you feel more out of breath, dizzy, feel like you might faint, or have chest pain.",
-  reading_grade: 7,
+  reading_grade_after: 7,
   qa: [
     {
       q: "How many times a day should you take your Eliquis (apixaban) pill?",
@@ -30,7 +30,8 @@ export const mockTeachBackData: TeachBackData = {
         "Only when my heart feels fast"
       ],
       rationale_correct: "The instructions clearly state to take one tablet twice daily. This is crucial for preventing strokes.",
-      rationale_incorrect: "Taking it once a day is incorrect and would not be effective. You must take it every day as scheduled, not just based on symptoms."
+      rationale_incorrect: "Taking it once a day is incorrect and would not be effective. You must take it every day as scheduled, not just based on symptoms.",
+      concept_tag: "Medication Frequency"
     },
     {
       q: "Which of these is a reason to get medical help immediately?",
@@ -40,7 +41,8 @@ export const mockTeachBackData: TeachBackData = {
         "Feeling a little tired"
       ],
       rationale_correct: "Coughing up blood is a sign of major bleeding, which is a serious side effect of Eliquis and requires immediate attention.",
-      rationale_incorrect: "Scheduling an appointment is a normal follow-up action, not an emergency. Feeling tired can be a side effect, but is not a reason for immediate help unless it's severe."
+      rationale_incorrect: "Scheduling an appointment is a normal follow-up action, not an emergency. Feeling tired can be a side effect, but is not a reason for immediate help unless it's severe.",
+      concept_tag: "Warning Signs"
     },
     {
       q: "When should you get your blood tests done?",
@@ -50,7 +52,8 @@ export const mockTeachBackData: TeachBackData = {
         "You don't need any blood tests"
       ],
       rationale_correct: "The instructions specify getting the lab work done in 2 weeks, which is before your 4-week follow-up appointment.",
-      rationale_incorrect: "The appointment is in 4 weeks, but the tests are needed sooner. The instructions explicitly state that blood tests are required."
+      rationale_incorrect: "The appointment is in 4 weeks, but the tests are needed sooner. The instructions explicitly state that blood tests are required.",
+      concept_tag: "Follow-up Actions"
     }
   ],
   remediation: {
@@ -73,5 +76,24 @@ export const mockTeachBackData: TeachBackData = {
       "fainting",
       "chest pain"
     ]
+  },
+  domain: {
+    discharge: {
+        followups: [
+            "Schedule an appointment with Dr. Smith (Cardiology) in 4 weeks.",
+            "Obtain an outpatient lab draw for a basic metabolic panel (BMP) and complete blood count (CBC) in 2 weeks."
+        ],
+        med_changes: [
+            "Start taking Eliquis (apixaban) 5 mg twice daily.",
+            "Start taking Metoprolol Succinate ER 50 mg once daily."
+        ],
+        when_to_call: [
+            "Increased shortness of breath",
+            "Dizziness",
+            "Fainting",
+            "Chest pain"
+        ],
+        activity_restrictions: []
+    }
   }
 };

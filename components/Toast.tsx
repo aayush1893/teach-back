@@ -10,15 +10,15 @@ interface ToastProps {
 const toastConfig = {
   success: {
     icon: <CheckIcon className="w-6 h-6 text-green-500" />,
-    style: 'bg-green-50 border-green-400 text-green-800',
+    style: 'bg-green-50 border-green-400 text-green-800 dark:bg-green-900/50 dark:border-green-700 dark:text-green-200',
   },
   error: {
     icon: <XIcon className="w-6 h-6 text-red-500" />,
-    style: 'bg-red-50 border-red-400 text-red-800',
+    style: 'bg-red-50 border-red-400 text-red-800 dark:bg-red-900/50 dark:border-red-700 dark:text-red-200',
   },
   info: {
     icon: <DisclaimerIcon className="w-6 h-6 text-blue-500" />,
-    style: 'bg-blue-50 border-blue-400 text-blue-800',
+    style: 'bg-blue-50 border-blue-400 text-blue-800 dark:bg-blue-900/50 dark:border-blue-700 dark:text-blue-200',
   },
 };
 
@@ -42,7 +42,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
             <div className="ml-3 flex-grow">
                 <p className="text-sm font-medium">{message}</p>
             </div>
-            <button onClick={onClose} className="ml-4 -mt-1 -mr-1 p-1 rounded-md hover:bg-gray-200" aria-label="Close notification">
+            <button onClick={onClose} className="ml-4 -mt-1 -mr-1 p-1 rounded-md hover:bg-white/60 dark:hover:bg-black/20" aria-label="Close notification">
                 <XIcon className="w-4 h-4" />
             </button>
         </div>
