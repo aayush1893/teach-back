@@ -3,10 +3,35 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage } from '../types';
 import { createChatSession } from '../services/geminiService';
-import { SendIcon, SparklesIcon, BookOpenIcon, PlusCircleIcon, CheckIcon } from './icons';
+import { SendIcon, SparklesIcon, BookOpenIcon, PlusCircleIcon, CheckIcon, PlusIcon, MinusIcon, ContrastIcon, RefreshIcon } from './icons';
 import { mockChatMessages } from '../data/mockChatData';
 import { useGlossary } from '../hooks/useGlossary';
 import GlossaryModal from './GlossaryModal';
+
+const FONT_SIZE_STEP = 1; 
+const MIN_FONT_SIZE = 12;
+const MAX_FONT_SIZE = 20;
+const DEFAULT_FONT_SIZE = 14; // Tailwind's `text-sm`
+
+const AccessibilityToolbar: React.FC<{ onFontSizeChange: (size: number) => void; onToggleContrast: () => void; onReset: () => void; fontSize: number }> = ({ onFontSizeChange, onToggleContrast, onReset, fontSize }) => {
+    return (
+        <div className="flex items-center space-x-1 p-1 bg-gray-100 dark:bg-gray-700/50 rounded-md">
+            <button onClick={() => onFontSizeChange(fontSize + FONT_SIZE_STEP)} disabled={fontSize >= MAX_FONT_SIZE} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded disabled:opacity-50" title="Increase font size" aria-label="Increase font size">
+                <PlusIcon className="w-4 h-4" />
+            </button>
+            <button onClick={() => onFontSizeChange(fontSize - FONT_SIZE_STEP)} disabled={fontSize <= MIN_FONT_SIZE} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded disabled:opacity-50" title="Decrease font size" aria-label="Decrease font size">
+                <MinusIcon className="w-4 h-4" />
+            </button>
+            <button onClick={onToggleContrast} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded" title="Toggle high contrast" aria-label="Toggle high contrast">
+                <ContrastIcon className="w-4 h-4" />
+            </button>
+             <button onClick={onReset} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded" title="Reset view settings" aria-label="Reset view settings">
+                <RefreshIcon className="w-4 h-4" />
+            </button>
+        </div>
+    );
+};
+
 
 interface ChatBotProps {
     isDemoActive: boolean;
@@ -23,6 +48,15 @@ const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive, isOffline }) => {
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const { glossary, addTerm, removeTerm, isTermInGlossary } = useGlossary();
     const [showGlossaryModal, setShowGlossaryModal] = useState(false);
+
+    // Accessibility State
+    const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+    const [highContrast, setHighContrast] = useState(false);
+
+    const resetAccessibility = () => {
+        setFontSize(DEFAULT_FONT_SIZE);
+        setHighContrast(false);
+    };
 
 
     useEffect(() => {
@@ -90,27 +124,36 @@ const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive, isOffline }) => {
 
     return (
         <>
-            <div data-tour-id="chat-helper-content" className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex flex-col h-[65vh] sm:h-[70vh] max-h-[700px]">
-                <div className="flex justify-between items-center mb-4 border-b dark:border-gray-700 pb-3">
-                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Chat Helper</h2>
-                     <button 
-                        onClick={() => setShowGlossaryModal(true)}
-                        className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                        aria-label="Open my glossary"
-                    >
-                        <BookOpenIcon className="w-5 h-5 mr-2" />
-                        My Glossary ({glossary.length})
-                    </button>
+            <div data-tour-id="chat-helper-content" className={`bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex flex-col h-[65vh] sm:h-[70vh] max-h-[700px] ${highContrast ? 'high-contrast-chat' : ''}`}>
+                <style>{`
+                    .high-contrast-chat { background-color: #000 !important; }
+                    .high-contrast-chat .chat-bubble p, .high-contrast-chat .chat-bubble h4 { color: #fff !important; }
+                    .high-contrast-chat .user-bubble { background-color: #1e293b !important; } /* A dark blue for contrast */
+                    .high-contrast-chat .model-bubble { background-color: #334155 !important; } /* A dark gray for contrast */
+                `}</style>
+                <div className="flex justify-between items-center mb-4 border-b dark:border-gray-700 pb-3 gap-4">
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex-shrink-0">Chat Helper</h2>
+                    <div className="flex items-center space-x-2 sm:space-x-4">
+                         <AccessibilityToolbar onFontSizeChange={setFontSize} onToggleContrast={() => setHighContrast(!highContrast)} onReset={resetAccessibility} fontSize={fontSize} />
+                         <button 
+                            onClick={() => setShowGlossaryModal(true)}
+                            className="flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex-shrink-0"
+                            aria-label="Open my glossary"
+                        >
+                            <BookOpenIcon className="w-5 h-5 mr-1 sm:mr-2" />
+                            <span className="hidden sm:inline">My Glossary</span> ({glossary.length})
+                        </button>
+                    </div>
                 </div>
                 <div ref={chatContainerRef} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
                     {messages.map((msg, index) => (
                         <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                             {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5"/></div>}
-                            <div className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
+                            <div className={`chat-bubble max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${msg.role === 'user' ? 'user-bubble bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'model-bubble bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
                             {msg.definition ? (
                                 <div className="space-y-2">
-                                    <h4 className="font-bold text-base text-gray-900 dark:text-gray-100">{msg.definition.term}</h4>
-                                    <p className="text-sm whitespace-pre-wrap">{msg.definition.definition}</p>
+                                    <h4 className="font-bold text-base text-gray-900 dark:text-gray-100" style={{ fontSize: `${fontSize}px`, lineHeight: `${fontSize * 1.5}px` }}>{msg.definition.term}</h4>
+                                    <p className="whitespace-pre-wrap" style={{ fontSize: `${fontSize}px`, lineHeight: `${fontSize * 1.5}px` }}>{msg.definition.definition}</p>
                                     <button 
                                         onClick={() => addTerm(msg.definition)}
                                         disabled={isTermInGlossary(msg.definition.term)}
@@ -128,7 +171,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ isDemoActive, isOffline }) => {
                                     </button>
                                 </div>
                             ) : (
-                                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                <p className="whitespace-pre-wrap" style={{ fontSize: `${fontSize}px`, lineHeight: `${fontSize * 1.5}px` }}>{msg.text}</p>
                             )}
                             </div>
                         </div>

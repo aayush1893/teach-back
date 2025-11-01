@@ -1,4 +1,3 @@
-
 # Teach-Back Engine: Intelligent Communication for Health
 
 ![Teach-Back Engine Screenshot](https://storage.googleapis.com/aistudio-programmable-ui-project-images/5a21e42a-99f5-46f9-813c-33b2fe92f15f.png)
@@ -44,7 +43,7 @@ The app employs a powerful two-stage process powered by the Gemini API:
 ### 2. Multi-Modal Input
 Users can provide information in the most convenient way:
 *   **Text:** Paste text directly into the input area.
-*   **PDF Upload (Vision):** Upload a PDF document. The app uses `pdf.js` to render the first page as an image, which is then analyzed by Gemini's vision capabilities.
+*   **PDF Upload (Vision):** Upload a PDF document. The app uses `pdf.js` to render the a user-selected page as an image, which is then analyzed by Gemini's vision capabilities.
 *   **Audio Transcription & Translation:** Dictate instructions in one of several supported languages. The app transcribes the audio and can translate it into another language, populating the input field with the result.
 
 ### 3. Adaptive Quiz & Mastery Loop
@@ -63,7 +62,13 @@ To ensure true comprehension, the app doesn't just simplify—it verifies.
 *   **Session Management:** Save an entire session (input, results, quiz state) to local storage and load it again later.
 *   **Printable Summary:** Download a clean, well-formatted summary of the simplified text, key details, and quiz answers to bring to a doctor's appointment.
 *   **Progressive Web App (PWA):** The app is fully installable on desktop and mobile devices and offers offline access to the application shell and saved sessions.
-*   **Accessibility:** Includes a Light/Dark mode toggle and is designed with ARIA attributes for screen reader compatibility.
+*   **Interactive Tour:** A guided tour walks new users through the app's key features.
+
+### 6. Accessibility
+*   **Theme Control:** Includes a Light/Dark mode toggle to suit user preference.
+*   **Text Customization:** The Simplified Text, Chat Helper, and Live Q&A modules all feature an accessibility toolbar that allows users to increase or decrease the font size and toggle a high-contrast mode for improved readability.
+*   **Screen Reader Support:** Designed with ARIA attributes for better compatibility with screen readers.
+*   **Reduced Motion:** Respects the `prefers-reduced-motion` OS-level setting to disable non-essential animations.
 
 ## Tech Stack
 
@@ -81,4 +86,5 @@ To ensure true comprehension, the app doesn't just simplify—it verifies.
 
 *   **AI is not infallible:** The AI model can make mistakes or "hallucinate" information. All simplified text and extracted data **must be verified** with a qualified healthcare professional.
 *   **Not for emergencies:** This tool should never be used in a medical emergency. If you are experiencing urgent symptoms, call your local emergency number immediately.
+*   **PDF Analysis:** The app currently analyzes only one user-selected page from a PDF at a time.
 *   **Privacy:** This application is designed with privacy in mind. All data processing occurs between your browser and the Google Gemini API. No instruction text or personal health information is stored on any intermediary server. Session data is stored exclusively in your browser's local storage.

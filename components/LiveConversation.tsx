@@ -4,10 +4,35 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Modality, Blob, LiveServerMessage } from '@google/genai';
 import { ChatMessage } from '../types';
 import { connectLiveSession } from '../services/geminiService';
-import { MicrophoneIcon, StopIcon, SparklesIcon, UserIcon } from './icons';
+import { MicrophoneIcon, StopIcon, SparklesIcon, UserIcon, PlusIcon, MinusIcon, ContrastIcon, RefreshIcon } from './icons';
 import { mockLiveTranscript } from '../data/mockChatData';
 
+const FONT_SIZE_STEP = 1;
+const MIN_FONT_SIZE = 12;
+const MAX_FONT_SIZE = 20;
+const DEFAULT_FONT_SIZE = 14; // Tailwind's `text-sm`
+
 const isApiSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext || (window as any).webkitAudioContext));
+
+const AccessibilityToolbar: React.FC<{ onFontSizeChange: (size: number) => void; onToggleContrast: () => void; onReset: () => void; fontSize: number }> = ({ onFontSizeChange, onToggleContrast, onReset, fontSize }) => {
+    return (
+        <div className="flex items-center space-x-1 p-1 bg-gray-100 dark:bg-gray-700/50 rounded-md">
+            <button onClick={() => onFontSizeChange(fontSize + FONT_SIZE_STEP)} disabled={fontSize >= MAX_FONT_SIZE} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded disabled:opacity-50" title="Increase font size" aria-label="Increase font size">
+                <PlusIcon className="w-4 h-4" />
+            </button>
+            <button onClick={() => onFontSizeChange(fontSize - FONT_SIZE_STEP)} disabled={fontSize <= MIN_FONT_SIZE} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded disabled:opacity-50" title="Decrease font size" aria-label="Decrease font size">
+                <MinusIcon className="w-4 h-4" />
+            </button>
+            <button onClick={onToggleContrast} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded" title="Toggle high contrast" aria-label="Toggle high contrast">
+                <ContrastIcon className="w-4 h-4" />
+            </button>
+             <button onClick={onReset} className="p-1.5 text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-600 rounded" title="Reset view settings" aria-label="Reset view settings">
+                <RefreshIcon className="w-4 h-4" />
+            </button>
+        </div>
+    );
+};
+
 
 // Audio Encoding/Decoding utilities
 function encode(bytes: Uint8Array) {
@@ -71,6 +96,16 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive, isOff
     // Refs for streaming transcription text
     const currentInputTranscriptionRef = useRef('');
     const currentOutputTranscriptionRef = useRef('');
+    
+    // Accessibility State
+    const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+    const [highContrast, setHighContrast] = useState(false);
+
+    const resetAccessibility = () => {
+        setFontSize(DEFAULT_FONT_SIZE);
+        setHighContrast(false);
+    };
+
 
     useEffect(() => {
         if (transcriptContainerRef.current) {
@@ -204,26 +239,35 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive, isOff
     const displayTranscript = isDemoActive ? mockLiveTranscript : transcript;
 
     return (
-        <div data-tour-id="live-qa-content" className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex flex-col h-[65vh] sm:h-[70vh] max-h-[700px]">
-            <div className="flex justify-between items-center mb-4 border-b dark:border-gray-700 pb-3">
-                 <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Live Q&A</h2>
-                 <button
-                    onClick={isLive || isConnecting ? stopSession : startSession}
-                    disabled={!isApiSupported || isDemoActive || isOffline}
-                    title={isOffline ? "Live Q&A is unavailable offline" : !isApiSupported ? "Your browser does not support the necessary APIs for this feature." : (isLive ? "End Session" : "Start Live Q&A")}
-                    className={`px-4 py-2 text-sm font-medium border rounded-md flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isLive || isConnecting ? 'text-red-700 bg-red-100 border-red-300 hover:bg-red-200 dark:text-red-300 dark:bg-red-900/50 dark:border-red-700 dark:hover:bg-red-900' : 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100 dark:text-blue-300 dark:bg-blue-900/50 dark:border-blue-700 dark:hover:bg-blue-900'}`}
-                 >
-                     {isConnecting ? (
-                         <>
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            Connecting...
-                         </>
-                     ) : isLive ? (
-                         <> <StopIcon className="w-4 h-4 mr-2" /> End Session </>
-                     ) : (
-                         <> <MicrophoneIcon className="w-4 h-4 mr-2" /> Start Live Q&A </>
-                     )}
-                 </button>
+        <div data-tour-id="live-qa-content" className={`bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 flex flex-col h-[65vh] sm:h-[70vh] max-h-[700px] ${highContrast ? 'high-contrast-chat' : ''}`}>
+             <style>{`
+                .high-contrast-chat { background-color: #000 !important; }
+                .high-contrast-chat .chat-bubble p { color: #fff !important; }
+                .high-contrast-chat .user-bubble { background-color: #1e293b !important; }
+                .high-contrast-chat .model-bubble { background-color: #334155 !important; }
+            `}</style>
+            <div className="flex justify-between items-center mb-4 border-b dark:border-gray-700 pb-3 gap-4">
+                 <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex-shrink-0">Live Q&A</h2>
+                 <div className="flex items-center space-x-2 sm:space-x-4">
+                     <AccessibilityToolbar onFontSizeChange={setFontSize} onToggleContrast={() => setHighContrast(!highContrast)} onReset={resetAccessibility} fontSize={fontSize} />
+                     <button
+                        onClick={isLive || isConnecting ? stopSession : startSession}
+                        disabled={!isApiSupported || isDemoActive || isOffline}
+                        title={isOffline ? "Live Q&A is unavailable offline" : !isApiSupported ? "Your browser does not support the necessary APIs for this feature." : (isLive ? "End Session" : "Start Live Q&A")}
+                        className={`px-4 py-2 text-sm font-medium border rounded-md flex items-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isLive || isConnecting ? 'text-red-700 bg-red-100 border-red-300 hover:bg-red-200 dark:text-red-300 dark:bg-red-900/50 dark:border-red-700 dark:hover:bg-red-900' : 'text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100 dark:text-blue-300 dark:bg-blue-900/50 dark:border-blue-700 dark:hover:bg-blue-900'}`}
+                     >
+                         {isConnecting ? (
+                             <>
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                Connecting...
+                             </>
+                         ) : isLive ? (
+                             <> <StopIcon className="w-4 h-4 mr-2" /> End Session </>
+                         ) : (
+                             <> <MicrophoneIcon className="w-4 h-4 mr-2" /> Start Live Q&A </>
+                         )}
+                     </button>
+                 </div>
             </div>
             <div ref={transcriptContainerRef} className="flex-grow overflow-y-auto pr-4 -mr-4 space-y-4">
                  {!isLive && displayTranscript.length === 0 && !isDemoActive && (
@@ -244,9 +288,9 @@ const LiveConversation: React.FC<LiveConversationProps> = ({ isDemoActive, isOff
                                 <SparklesIcon className="w-5 h-5"/>
                             </div>
                         }
-                        <div className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
+                        <div className={`chat-bubble max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-lg ${msg.role === 'user' ? 'user-bubble bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'model-bubble bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
                            <p className="text-xs font-semibold mb-1 text-gray-600 dark:text-gray-400">{msg.role === 'user' ? 'You' : 'Assistant'}</p>
-                           <p className="text-sm">{msg.text}</p>
+                           <p style={{ fontSize: `${fontSize}px`, lineHeight: `${fontSize * 1.5}px` }}>{msg.text}</p>
                         </div>
                         {msg.role === 'user' && 
                             <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center flex-shrink-0 dark:bg-gray-600 dark:text-gray-300">
