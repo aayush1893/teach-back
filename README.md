@@ -55,12 +55,12 @@ After installation, you can run the application using your local development env
 
 | Structured Data Extraction | Adaptive Quiz & Remediation |
 | :---: | :---: |
-| <img width="2539" height="1439" alt="Structured Data Extraction" src="https://github.com/user-attachments/assets/8e9e58fb-a4ea-4da3-876f-3251000b03ea" /><br/><img width="2559" height="1400" alt="Domain Details" src="https://github.com/user-attachments/assets/1db9a9b7-01a3-46c0-9d3a-deaa14666822" />| ![Screenshot of the quiz showing one incorrect answer with a detailed rationale and a re-teaching remediation box below.](https://storage.googleapis.com/aistudio-programmable-ui-project-images/e775a2cb-0371-419b-a78a-c60f4e3b7b8a.png) |
+| ![A screenshot showing the simplified text on the left and a card with extracted 'Discharge Summary' details on the right.](https://github.com/user-attachments/assets/8e9e58fb-a4ea-4da3-876f-3251000b03ea) | ![A screenshot showing the quiz with instant feedback. One answer is marked incorrect in red, with a rationale provided. Below it is a re-teaching module to explain the concept again.](https://github.com/user-attachments/assets/1db9a9b7-01a3-46c0-9d3a-deaa14666822) |
 | The app intelligently identifies the document type and extracts key information into a clean, easy-to-read summary card. | The quiz provides instant feedback. If you miss a question, a re-teaching module helps you understand the concept before you try again. |
 
 | Chat Helper & Personal Glossary | Live Voice Q&A |
 | :---: | :---: |
-| <img width="2133" height="1058" alt="Screenshot of the Chat Helper, now with accessibility controls (font size, contrast) in the header." src="https://github.com/user-attachments/assets/e5383d52-fdba-45dc-ad5a-7950fd152871" /> | <img width="2147" height="1055" alt="Screenshot of the Live Voice Q&A, now with accessibility controls (font size, contrast) in the header above the transcript." src="https://github.com/user-attachments/assets/c3076a15-1d26-440a-bfe6-6381f9d75d34" /> |
+| ![Screenshot of the Chat Helper, now with accessibility controls (font size, contrast) in the header.](https://github.com/user-attachments/assets/e5383d52-fdba-45dc-ad5a-7950fd152871) | ![Screenshot of the Live Voice Q&A, now with accessibility controls (font size, contrast) in the header above the transcript.](https://github.com/user-attachments/assets/c3076a15-1d26-440a-bfe6-6381f9d75d34) |
 | Ask for definitions of complex terms and save them to your personal glossary. Accessibility controls are available. | Have a natural, hands-free conversation with the AI assistant, with full accessibility controls for the transcript. |
 
 

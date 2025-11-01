@@ -195,7 +195,7 @@ export const ContrastIcon: React.FC<{ className?: string }> = ({ className }) =>
 
 export const RefreshIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 3v2.5M10 3c-4.418 0-8 3.582-8 8s3.582 8 8 8 8-3.582 8-8-3.582-8-8-8zM10 20.5v-2.5" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464l-1.768-1.768M4.464 15.536l-1.768-1.768" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 9a9 9 0 0114.85-3.15M20 15a9 9 0 01-14.85 3.15" />
   </svg>
 );
